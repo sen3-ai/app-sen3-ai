@@ -81,6 +81,13 @@
       "retries": 3
     },
     {
+      "name": "amlbot",
+      "enabled": true,
+      "priority": 1,
+      "timeout": 10000,
+      "retries": 3
+    },
+    {
       "name": "defi",
       "enabled": false,
       "priority": 5,

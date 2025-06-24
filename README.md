@@ -73,6 +73,10 @@ DB_PORT=5432
 DB_NAME=sen3ai
 DB_USERNAME=postgres
 DB_PASSWORD=your_database_password_here
+
+# AMLBot API
+AMLBOT_TM_ID=your_amlbot_tm_id_here
+AMLBOT_ACCESS_KEY=your_amlbot_access_key_here
 ```
 
 ### Configuration File (config/config.json)
@@ -212,6 +216,18 @@ View current configuration (disabled in production).
 - **Purpose**: Deep on-chain analysis (DeFi protocols, NFTs, smart contracts)
 - **Data**: DeFi protocols, NFT holdings, token holdings, smart contract interactions
 - **APIs**: Various DeFi and NFT analytics services
+
+### AMLBot Provider
+- **Purpose**: Real-time address verification and risk assessment using AMLBot API
+- **Data**: Risk scores, blacklist status, suspicious patterns, transaction history
+- **APIs**: [AMLBot Address Verification API](https://docs.amlbot.com/telegramApi/requests#aml-address-verification)
+- **Features**: 
+  - Real-time risk assessment
+  - Blacklist checking
+  - Suspicious pattern detection
+  - Multi-chain support (Ethereum, Solana)
+  - Automatic retry with exponential backoff
+  - Graceful fallback to mock data when API is unavailable
 
 ## Risk Processors
 
@@ -399,20 +415,3 @@ RUN npm run build
 EXPOSE 3000
 CMD ["npm", "start"]
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
-
-## License
-
-[Add your license here]
-
-## Support
-
-For support and questions, please [create an issue](link-to-issues) or contact [your-email]. 

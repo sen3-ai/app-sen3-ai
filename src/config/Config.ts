@@ -1,5 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 export interface BlockchainConfig {
   name: string;
@@ -47,6 +51,8 @@ export interface ApiCredentials {
   polygonscanApiKey?: string;
   bscscanApiKey?: string;
   solscanApiKey?: string;
+  amlbotTmId?: string;
+  amlbotAccessKey?: string;
 }
 
 export interface AppConfig {
@@ -171,7 +177,9 @@ export class Config {
       etherscanApiKey: process.env.ETHERSCAN_API_KEY,
       polygonscanApiKey: process.env.POLYGONSCAN_API_KEY,
       bscscanApiKey: process.env.BSCSCAN_API_KEY,
-      solscanApiKey: process.env.SOLSCAN_API_KEY
+      solscanApiKey: process.env.SOLSCAN_API_KEY,
+      amlbotTmId: process.env.AMLBOT_TM_ID,
+      amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY
     };
   }
 

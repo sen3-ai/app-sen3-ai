@@ -9,6 +9,8 @@ import { BlockchainProvider } from './providers/BlockchainProvider';
 import { ReputationProvider } from './providers/ReputationProvider';
 import { SocialProvider } from './providers/SocialProvider';
 import { OnchainProvider } from './providers/OnchainProvider';
+import { AMLBotProvider } from './providers/AMLBotProvider';
+import { ContractVerifier } from './providers/ContractVerifier';
 
 // Load configuration
 const config = Config.getInstance();
@@ -34,6 +36,7 @@ export enum AddressType {
 // Initialize providers and processors
 const dataCollector = new DataCollector();
 const processorManager = new ProcessorManager();
+const contractVerifier = new ContractVerifier();
 
 // Add providers based on configuration
 const providerConfigs = config.getProviderConfigs();
@@ -50,6 +53,9 @@ providerConfigs.forEach(providerConfig => {
       break;
     case 'onchain':
       dataCollector.addProvider(new OnchainProvider());
+      break;
+    case 'amlbot':
+      dataCollector.addProvider(new AMLBotProvider());
       break;
     default:
       console.warn(`Unknown provider: ${providerConfig.name}`);
@@ -105,6 +111,7 @@ function generateDescription(addressType: string, explanations: string[], score:
 app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => {
   try {
     const { address } = req.params;
+    const { chain } = req.query; // Optional chain parameter
     
     if (!address || typeof address !== 'string') {
       res.status(400).json({
@@ -129,6 +136,32 @@ app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => 
         reason: 'Invalid address format. Only EVM and Solana addresses are supported.'
       });
       return;
+    }
+
+    // For EVM addresses, verify it's a smart contract
+    if (addressType === AddressType.EVM) {
+      try {
+        if (!contractVerifier.hasApiKeys()) {
+          res.status(400).json({
+            result: false,
+            reason: 'No EVM API keys configured. Please configure ETHERSCAN_API_KEY in your environment.'
+          });
+          return;
+        }
+        
+        // Skip contract verification in test mode
+        if (process.env.NODE_ENV !== 'test') {
+          // Use the chain parameter if provided, otherwise use default detection
+          const chainName = typeof chain === 'string' ? chain : undefined;
+          await contractVerifier.validateContractAddress(address, chainName);
+        }
+      } catch (error) {
+        res.status(400).json({
+          result: false,
+          reason: error instanceof Error ? error.message : 'Contract verification failed'
+        });
+        return;
+      }
     }
 
     // Collect data from all providers
@@ -170,6 +203,22 @@ app.get('/health', (req: Request, res: Response): void => {
       providers: dataCollector.getProviders().map(p => p.getName()),
       processors: processorManager.getProcessors().map(p => p.getName()),
       blockchains: config.getBlockchainConfigs().map(bc => bc.name),
+      contractVerification: {
+        enabled: contractVerifier.hasApiKeys(),
+        availableChains: contractVerifier.getAvailableChains()
+      },
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+// Supported chains endpoint
+app.get('/chains', (req: Request, res: Response): void => {
+  res.json({
+    result: true,
+    data: {
+      supportedChains: contractVerifier.getAvailableChains(),
+      contractVerificationEnabled: contractVerifier.hasApiKeys(),
       timestamp: new Date().toISOString()
     }
   });
@@ -196,7 +245,9 @@ app.get('/config', (req: Request, res: Response): void => {
       etherscanApiKey: !!config.getCredentials().etherscanApiKey,
       polygonscanApiKey: !!config.getCredentials().polygonscanApiKey,
       bscscanApiKey: !!config.getCredentials().bscscanApiKey,
-      solscanApiKey: !!config.getCredentials().solscanApiKey
+      solscanApiKey: !!config.getCredentials().solscanApiKey,
+      amlbotTmId: !!config.getCredentials().amlbotTmId,
+      amlbotAccessKey: !!config.getCredentials().amlbotAccessKey
     }
   };
 
@@ -219,4 +270,4 @@ if (require.main === module) {
     console.log(`Available processors: ${processorManager.getProcessors().map(p => p.getName()).join(', ')}`);
     console.log(`Supported blockchains: ${config.getBlockchainConfigs().map(bc => bc.name).join(', ')}`);
   });
-} 
+}
