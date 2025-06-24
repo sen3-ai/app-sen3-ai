@@ -2,7 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { DataCollector } from './providers/DataCollector';
-import { RiskCalculator } from './providers/RiskCalculator';
+import { ProcessorManager } from './processors/ProcessorManager';
+import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProcessor';
 import { BlockchainProvider } from './providers/BlockchainProvider';
 import { ReputationProvider } from './providers/ReputationProvider';
 import { SocialProvider } from './providers/SocialProvider';
@@ -21,9 +22,9 @@ export enum AddressType {
   UNKNOWN = 'unknown'
 }
 
-// Initialize providers and data collector
+// Initialize providers and processors
 const dataCollector = new DataCollector();
-const riskCalculator = new RiskCalculator();
+const processorManager = new ProcessorManager();
 
 // Add providers
 dataCollector.addProvider(new BlockchainProvider());
@@ -31,11 +32,31 @@ dataCollector.addProvider(new ReputationProvider());
 dataCollector.addProvider(new SocialProvider());
 dataCollector.addProvider(new OnchainProvider());
 
+// Add processors
+processorManager.addProcessor(new ComprehensiveRiskProcessor());
+
 // Utility to determine if address is EVM or Solana
 function getAddressType(address: string): AddressType {
   if (/^0x[0-9a-fA-F]{40}$/.test(address)) return AddressType.EVM;
   if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return AddressType.SOLANA;
   return AddressType.UNKNOWN;
+}
+
+// Helper method to generate description
+function generateDescription(addressType: string, explanations: string[], score: number, confidence: number): string {
+  let description = `${addressType.toUpperCase()} address. `;
+  
+  if (explanations.length > 0) {
+    description += `Risk factors: ${explanations.join(', ')}. `;
+  }
+  
+  if (confidence < 0.7) {
+    description += `Low confidence due to data collection issues. `;
+  }
+  
+  description += `Final risk score: ${score}/100.`;
+  
+  return description;
 }
 
 app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => {
@@ -70,18 +91,20 @@ app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => 
     // Collect data from all providers
     const collectedData = await dataCollector.collectData(address);
     
-    // Calculate risk based on collected data
-    const riskAnalysis = riskCalculator.calculateRisk(address, addressType, collectedData);
+    // Process data through all processors
+    const riskAssessment = await processorManager.processData(address, addressType, collectedData);
     
     res.json({
       result: true,
       data: {
         address: address,
         addressType: addressType,
-        riskScore: riskAnalysis.score,
-        description: riskAnalysis.description,
-        confidence: riskAnalysis.confidence,
-        factors: riskAnalysis.factors,
+        riskScore: riskAssessment.finalScore,
+        description: generateDescription(addressType, riskAssessment.explanations, riskAssessment.finalScore, riskAssessment.confidence),
+        confidence: riskAssessment.confidence,
+        explanations: riskAssessment.explanations,
+        processorCount: riskAssessment.processorCount,
+        processorAssessments: riskAssessment.processorAssessments,
         providerData: collectedData,
         timestamp: new Date().toISOString()
       }
@@ -101,6 +124,7 @@ app.get('/health', (req: Request, res: Response): void => {
     data: {
       status: 'healthy',
       providers: dataCollector.getProviders().map(p => p.getName()),
+      processors: processorManager.getProcessors().map(p => p.getName()),
       timestamp: new Date().toISOString()
     }
   });
@@ -114,5 +138,6 @@ if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
     console.log(`Available providers: ${dataCollector.getProviders().map(p => p.getName()).join(', ')}`);
+    console.log(`Available processors: ${processorManager.getProcessors().map(p => p.getName()).join(', ')}`);
   });
 } 

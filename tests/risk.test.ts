@@ -16,7 +16,9 @@ describe('Risk API Endpoint', () => {
           riskScore: expect.any(Number),
           description: expect.stringContaining('EVM address'),
           confidence: expect.any(Number),
-          factors: expect.any(Array),
+          explanations: expect.any(Array),
+          processorCount: expect.any(Number),
+          processorAssessments: expect.any(Array),
           providerData: expect.objectContaining({
             blockchain: expect.any(Object),
             reputation: expect.any(Object),
@@ -41,7 +43,9 @@ describe('Risk API Endpoint', () => {
           riskScore: expect.any(Number),
           description: expect.stringContaining('EVM address'),
           confidence: expect.any(Number),
-          factors: expect.any(Array),
+          explanations: expect.any(Array),
+          processorCount: expect.any(Number),
+          processorAssessments: expect.any(Array),
           providerData: expect.objectContaining({
             blockchain: expect.any(Object),
             reputation: expect.any(Object),
@@ -66,7 +70,9 @@ describe('Risk API Endpoint', () => {
           riskScore: expect.any(Number),
           description: expect.stringContaining('SOLANA address'),
           confidence: expect.any(Number),
-          factors: expect.any(Array),
+          explanations: expect.any(Array),
+          processorCount: expect.any(Number),
+          processorAssessments: expect.any(Array),
           providerData: expect.objectContaining({
             blockchain: expect.any(Object),
             reputation: expect.any(Object),
@@ -91,7 +97,9 @@ describe('Risk API Endpoint', () => {
           riskScore: expect.any(Number),
           description: expect.stringContaining('SOLANA address'),
           confidence: expect.any(Number),
-          factors: expect.any(Array),
+          explanations: expect.any(Array),
+          processorCount: expect.any(Number),
+          processorAssessments: expect.any(Array),
           providerData: expect.objectContaining({
             blockchain: expect.any(Object),
             reputation: expect.any(Object),
@@ -177,20 +185,57 @@ describe('Risk API Endpoint', () => {
       expect(providerData.reputation).toHaveProperty('riskLevel');
     });
 
-    it('should include risk factors and confidence in response', async () => {
+    it('should include processor data in response', async () => {
       const response = await request(app)
         .get('/risk/0xabc1234567890abcdef1234567890abcdef12345')
         .expect(200);
 
-      const { factors, confidence, riskScore } = response.body.data;
+      const { explanations, processorCount, processorAssessments, confidence, riskScore } = response.body.data;
       
-      expect(Array.isArray(factors)).toBe(true);
+      expect(Array.isArray(explanations)).toBe(true);
+      expect(typeof processorCount).toBe('number');
+      expect(processorCount).toBeGreaterThan(0);
+      expect(Array.isArray(processorAssessments)).toBe(true);
+      expect(processorAssessments.length).toBe(processorCount);
+      
+      // Check processor assessment structure
+      if (processorAssessments.length > 0) {
+        const assessment = processorAssessments[0];
+        expect(assessment).toHaveProperty('score');
+        expect(assessment).toHaveProperty('explanations');
+        expect(assessment).toHaveProperty('confidence');
+        expect(assessment).toHaveProperty('processorName');
+      }
+      
       expect(typeof confidence).toBe('number');
       expect(confidence).toBeGreaterThanOrEqual(0);
       expect(confidence).toBeLessThanOrEqual(1);
       expect(typeof riskScore).toBe('number');
       expect(riskScore).toBeGreaterThanOrEqual(0);
       expect(riskScore).toBeLessThanOrEqual(100);
+    });
+
+    it('should include detailed explanations for risk assessment', async () => {
+      const response = await request(app)
+        .get('/risk/0xabc1234567890abcdef1234567890abcdef12345')
+        .expect(200);
+
+      const { explanations, description } = response.body.data;
+      
+      expect(Array.isArray(explanations)).toBe(true);
+      expect(explanations.length).toBeGreaterThan(0);
+      
+      // Check that explanations are meaningful
+      explanations.forEach((explanation: string) => {
+        expect(typeof explanation).toBe('string');
+        expect(explanation.length).toBeGreaterThan(10);
+      });
+      
+      // Check that description includes explanations
+      expect(description).toContain('Risk factors:');
+      explanations.forEach((explanation: string) => {
+        expect(description).toContain(explanation);
+      });
     });
   });
 
