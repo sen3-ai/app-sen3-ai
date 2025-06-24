@@ -12,9 +12,17 @@ describe('Risk API Endpoint', () => {
         result: true,
         data: {
           address: '0xabc1234567890abcdef1234567890abcdef12345',
-          riskScore: 20,
-          description: 'EVM address. Score based on prefix. Trusted prefix.',
           addressType: 'evm',
+          riskScore: expect.any(Number),
+          description: expect.stringContaining('EVM address'),
+          confidence: expect.any(Number),
+          factors: expect.any(Array),
+          providerData: expect.objectContaining({
+            blockchain: expect.any(Object),
+            reputation: expect.any(Object),
+            social: expect.any(Object),
+            onchain: expect.any(Object)
+          }),
           timestamp: expect.any(String)
         }
       });
@@ -29,9 +37,17 @@ describe('Risk API Endpoint', () => {
         result: true,
         data: {
           address: '0xdef1234567890abcdef1234567890abcdef12345',
-          riskScore: 70,
-          description: 'EVM address. Score based on prefix. Untrusted prefix.',
           addressType: 'evm',
+          riskScore: expect.any(Number),
+          description: expect.stringContaining('EVM address'),
+          confidence: expect.any(Number),
+          factors: expect.any(Array),
+          providerData: expect.objectContaining({
+            blockchain: expect.any(Object),
+            reputation: expect.any(Object),
+            social: expect.any(Object),
+            onchain: expect.any(Object)
+          }),
           timestamp: expect.any(String)
         }
       });
@@ -46,9 +62,17 @@ describe('Risk API Endpoint', () => {
         result: true,
         data: {
           address: '11111111111111111111111111111111A',
-          riskScore: 30,
-          description: 'Solana address. Score based on suffix. Trusted suffix.',
           addressType: 'solana',
+          riskScore: expect.any(Number),
+          description: expect.stringContaining('SOLANA address'),
+          confidence: expect.any(Number),
+          factors: expect.any(Array),
+          providerData: expect.objectContaining({
+            blockchain: expect.any(Object),
+            reputation: expect.any(Object),
+            social: expect.any(Object),
+            onchain: expect.any(Object)
+          }),
           timestamp: expect.any(String)
         }
       });
@@ -63,9 +87,17 @@ describe('Risk API Endpoint', () => {
         result: true,
         data: {
           address: '11111111111111111111111111111111',
-          riskScore: 80,
-          description: 'Solana address. Score based on suffix. Untrusted suffix.',
           addressType: 'solana',
+          riskScore: expect.any(Number),
+          description: expect.stringContaining('SOLANA address'),
+          confidence: expect.any(Number),
+          factors: expect.any(Array),
+          providerData: expect.objectContaining({
+            blockchain: expect.any(Object),
+            reputation: expect.any(Object),
+            social: expect.any(Object),
+            onchain: expect.any(Object)
+          }),
           timestamp: expect.any(String)
         }
       });
@@ -118,6 +150,47 @@ describe('Risk API Endpoint', () => {
         result: false,
         reason: 'Address cannot be empty'
       });
+    });
+
+    it('should include provider data in response', async () => {
+      const response = await request(app)
+        .get('/risk/0xabc1234567890abcdef1234567890abcdef12345')
+        .expect(200);
+
+      const { providerData } = response.body.data;
+      
+      expect(providerData).toHaveProperty('blockchain');
+      expect(providerData).toHaveProperty('reputation');
+      expect(providerData).toHaveProperty('social');
+      expect(providerData).toHaveProperty('onchain');
+      
+      // Check that blockchain data has expected structure
+      expect(providerData.blockchain).toHaveProperty('transactionCount');
+      expect(providerData.blockchain).toHaveProperty('totalVolume');
+      expect(providerData.blockchain).toHaveProperty('firstSeen');
+      expect(providerData.blockchain).toHaveProperty('lastSeen');
+      expect(providerData.blockchain).toHaveProperty('averageTransactionValue');
+      
+      // Check that reputation data has expected structure
+      expect(providerData.reputation).toHaveProperty('trustScore');
+      expect(providerData.reputation).toHaveProperty('isBlacklisted');
+      expect(providerData.reputation).toHaveProperty('riskLevel');
+    });
+
+    it('should include risk factors and confidence in response', async () => {
+      const response = await request(app)
+        .get('/risk/0xabc1234567890abcdef1234567890abcdef12345')
+        .expect(200);
+
+      const { factors, confidence, riskScore } = response.body.data;
+      
+      expect(Array.isArray(factors)).toBe(true);
+      expect(typeof confidence).toBe('number');
+      expect(confidence).toBeGreaterThanOrEqual(0);
+      expect(confidence).toBeLessThanOrEqual(1);
+      expect(typeof riskScore).toBe('number');
+      expect(riskScore).toBeGreaterThanOrEqual(0);
+      expect(riskScore).toBeLessThanOrEqual(100);
     });
   });
 
