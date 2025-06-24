@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import { Config } from './config/Config';
 import { DataCollector } from './providers/DataCollector';
 import { ProcessorManager } from './processors/ProcessorManager';
 import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProcessor';
@@ -9,10 +10,18 @@ import { ReputationProvider } from './providers/ReputationProvider';
 import { SocialProvider } from './providers/SocialProvider';
 import { OnchainProvider } from './providers/OnchainProvider';
 
-const app = express();
-const port = process.env.PORT || 3000;
+// Load configuration
+const config = Config.getInstance();
+const serverConfig = config.getServerConfig();
 
-app.use(cors());
+const app = express();
+const port = serverConfig.port;
+
+// Configure CORS
+app.use(cors({
+  origin: serverConfig.cors.origin,
+  credentials: serverConfig.cors.credentials
+}));
 app.use(bodyParser.json());
 
 // Enum for address types
@@ -26,19 +35,53 @@ export enum AddressType {
 const dataCollector = new DataCollector();
 const processorManager = new ProcessorManager();
 
-// Add providers
-dataCollector.addProvider(new BlockchainProvider());
-dataCollector.addProvider(new ReputationProvider());
-dataCollector.addProvider(new SocialProvider());
-dataCollector.addProvider(new OnchainProvider());
+// Add providers based on configuration
+const providerConfigs = config.getProviderConfigs();
+providerConfigs.forEach(providerConfig => {
+  switch (providerConfig.name) {
+    case 'blockchain':
+      dataCollector.addProvider(new BlockchainProvider());
+      break;
+    case 'reputation':
+      dataCollector.addProvider(new ReputationProvider());
+      break;
+    case 'social':
+      dataCollector.addProvider(new SocialProvider());
+      break;
+    case 'onchain':
+      dataCollector.addProvider(new OnchainProvider());
+      break;
+    default:
+      console.warn(`Unknown provider: ${providerConfig.name}`);
+  }
+});
 
-// Add processors
-processorManager.addProcessor(new ComprehensiveRiskProcessor());
+// Add processors based on configuration
+const processorConfigs = config.getProcessorConfigs();
+processorConfigs.forEach(processorConfig => {
+  switch (processorConfig.name) {
+    case 'comprehensive':
+      processorManager.addProcessor(new ComprehensiveRiskProcessor());
+      break;
+    default:
+      console.warn(`Unknown processor: ${processorConfig.name}`);
+  }
+});
 
-// Utility to determine if address is EVM or Solana
+// Utility to determine if address is EVM or Solana based on configuration
 function getAddressType(address: string): AddressType {
-  if (/^0x[0-9a-fA-F]{40}$/.test(address)) return AddressType.EVM;
-  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return AddressType.SOLANA;
+  const blockchainConfigs = config.getBlockchainConfigs();
+  
+  for (const blockchain of blockchainConfigs) {
+    if (new RegExp(blockchain.regex).test(address)) {
+      if (blockchain.name === 'solana') {
+        return AddressType.SOLANA;
+      } else {
+        return AddressType.EVM;
+      }
+    }
+  }
+  
   return AddressType.UNKNOWN;
 }
 
@@ -123,10 +166,43 @@ app.get('/health', (req: Request, res: Response): void => {
     result: true,
     data: {
       status: 'healthy',
+      environment: config.getEnvironment(),
       providers: dataCollector.getProviders().map(p => p.getName()),
       processors: processorManager.getProcessors().map(p => p.getName()),
+      blockchains: config.getBlockchainConfigs().map(bc => bc.name),
       timestamp: new Date().toISOString()
     }
+  });
+});
+
+// Configuration endpoint (for debugging, should be disabled in production)
+app.get('/config', (req: Request, res: Response): void => {
+  if (config.getEnvironment() === 'production') {
+    res.status(403).json({
+      result: false,
+      reason: 'Configuration endpoint is disabled in production'
+    });
+    return;
+  }
+
+  const safeConfig = {
+    ...config.getConfig(),
+    credentials: {
+      // Only show if credentials are set, not the actual values
+      blockchainApiKey: !!config.getCredentials().blockchainApiKey,
+      reputationApiKey: !!config.getCredentials().reputationApiKey,
+      socialApiKey: !!config.getCredentials().socialApiKey,
+      onchainApiKey: !!config.getCredentials().onchainApiKey,
+      etherscanApiKey: !!config.getCredentials().etherscanApiKey,
+      polygonscanApiKey: !!config.getCredentials().polygonscanApiKey,
+      bscscanApiKey: !!config.getCredentials().bscscanApiKey,
+      solscanApiKey: !!config.getCredentials().solscanApiKey
+    }
+  };
+
+  res.json({
+    result: true,
+    data: safeConfig
   });
 });
 
@@ -135,9 +211,12 @@ export { app };
 
 // Only start server if this file is run directly
 if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  app.listen(port, serverConfig.host, () => {
+    console.log(`Server running on ${serverConfig.host}:${port}`);
+    console.log(`Environment: ${config.getEnvironment()}`);
+    console.log(`Log level: ${config.getLogLevel()}`);
     console.log(`Available providers: ${dataCollector.getProviders().map(p => p.getName()).join(', ')}`);
     console.log(`Available processors: ${processorManager.getProcessors().map(p => p.getName()).join(', ')}`);
+    console.log(`Supported blockchains: ${config.getBlockchainConfigs().map(bc => bc.name).join(', ')}`);
   });
 } 

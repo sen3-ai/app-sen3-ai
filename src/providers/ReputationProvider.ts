@@ -1,68 +1,67 @@
 import { BaseProvider } from './Provider';
-
-export interface ReputationData {
-  trustScore: number;
-  isBlacklisted: boolean;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  reports: number;
-  positiveFeedback: number;
-  negativeFeedback: number;
-}
+import { Config } from '../config/Config';
 
 export class ReputationProvider extends BaseProvider {
+  private config = Config.getInstance();
+
   getName(): string {
     return 'reputation';
   }
 
-  async fetch(address: string): Promise<ReputationData | null> {
+  async fetch(address: string): Promise<any> {
     return this.safeFetch(async () => {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 800 + 300));
+      const credentials = this.config.getCredentials();
+      const providerConfig = this.config.getProviderConfigs().find(p => p.name === 'reputation');
       
-      // Simulate different reputation based on address
-      const isTrusted = address.includes('abc') || address.endsWith('A');
-      const isSuspicious = address.includes('def') || address.includes('xyz');
-      const isNew = address.includes('123') || address.length < 40;
+      // Simulate API call with configured timeout
+      const timeout = providerConfig?.timeout || 3000;
+      await this.simulateApiCall(timeout);
+
+      // Use API key if available
+      const apiKey = credentials.reputationApiKey;
       
-      if (isTrusted) {
-        return {
-          trustScore: 95,
-          isBlacklisted: false,
-          riskLevel: 'low',
-          reports: 0,
-          positiveFeedback: 150,
-          negativeFeedback: 2
-        };
-      } else if (isSuspicious) {
-        return {
-          trustScore: 15,
-          isBlacklisted: false,
-          riskLevel: 'high',
-          reports: 25,
-          positiveFeedback: 5,
-          negativeFeedback: 45
-        };
-      } else if (isNew) {
-        return {
-          trustScore: 30,
-          isBlacklisted: false,
-          riskLevel: 'medium',
-          reports: 0,
-          positiveFeedback: 0,
-          negativeFeedback: 0
-        };
-      } else {
-        // Simulate occasional blacklisted addresses
-        const isBlacklisted = Math.random() < 0.05; // 5% chance
-        return {
-          trustScore: isBlacklisted ? 0 : 65,
-          isBlacklisted,
-          riskLevel: isBlacklisted ? 'critical' : 'medium',
-          reports: isBlacklisted ? 100 : 3,
-          positiveFeedback: isBlacklisted ? 0 : 25,
-          negativeFeedback: isBlacklisted ? 150 : 8
-        };
-      }
+      return {
+        reputationScore: this.generateReputationScore(),
+        riskLevel: this.generateRiskLevel(),
+        flaggedIncidents: this.generateFlaggedIncidents(),
+        trustScore: this.generateTrustScore(),
+        blacklistStatus: this.generateBlacklistStatus(),
+        apiKeyConfigured: !!apiKey,
+        providerConfig: {
+          timeout,
+          retries: providerConfig?.retries || 2
+        },
+        // Legacy/compat fields for processor/tests
+        isBlacklisted: this.generateBlacklistStatus(),
+        reports: Math.floor(Math.random() * 20),
+        positiveFeedback: Math.floor(Math.random() * 100),
+        negativeFeedback: Math.floor(Math.random() * 100)
+      };
     });
+  }
+
+  private async simulateApiCall(timeout: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, Math.random() * timeout * 0.5 + timeout * 0.1));
+  }
+
+  private generateReputationScore(): number {
+    return Math.floor(Math.random() * 100);
+  }
+
+  private generateRiskLevel(): string {
+    const levels = ['low', 'medium', 'high', 'critical'];
+    return levels[Math.floor(Math.random() * levels.length)];
+  }
+
+  private generateFlaggedIncidents(): number {
+    return Math.floor(Math.random() * 10);
+  }
+
+  private generateTrustScore(): number {
+    return Math.floor(Math.random() * 100);
+  }
+
+  private generateBlacklistStatus(): boolean {
+    return Math.random() < 0.1; // 10% chance of being blacklisted
   }
 } 
