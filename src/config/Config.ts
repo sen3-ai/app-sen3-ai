@@ -246,6 +246,13 @@ export class Config {
         priority: 5,
         timeout: 8000,
         retries: 3
+      },
+      {
+        name: 'dexscreener',
+        enabled: true,
+        priority: 6,
+        timeout: 5000,
+        retries: 2
       }
     ];
   }
