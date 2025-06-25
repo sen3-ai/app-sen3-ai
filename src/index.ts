@@ -120,15 +120,23 @@ function generateDescription(addressType: string, explanations: string[], score:
   return description;
 }
 
-app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => {
+// Risk assessment endpoint
+app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { address } = req.params;
-    const { chain } = req.query; // Optional chain parameter
+    const { address, chain } = req.params;
     
     if (!address || typeof address !== 'string') {
       res.status(400).json({
         result: false,
         reason: 'Missing or invalid address parameter'
+      });
+      return;
+    }
+
+    if (!chain || typeof chain !== 'string') {
+      res.status(400).json({
+        result: false,
+        reason: 'Missing or invalid chain parameter'
       });
       return;
     }
@@ -141,38 +149,19 @@ app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const addressType = getAddressType(address);
-    if (addressType === AddressType.UNKNOWN) {
+    if (chain.trim() === '') {
       res.status(400).json({
         result: false,
-        reason: 'Invalid address format. Only EVM and Solana addresses are supported.'
+        reason: 'Chain cannot be empty'
       });
       return;
     }
 
-    // For EVM addresses, verify it's a smart contract
-    if (addressType === AddressType.EVM) {
-      try {
-        if (!contractVerifier.hasApiKeys()) {
-          res.status(400).json({
-            result: false,
-            reason: 'No EVM API keys configured. Please configure ETHERSCAN_API_KEY in your environment.'
-          });
-          return;
-        }
-        
-        // Use the chain parameter if provided, otherwise use default detection
-        const chainName = typeof chain === 'string' ? chain : undefined;
-        await contractVerifier.validateContractAddress(address, chainName);
-      } catch (error) {
-        res.status(400).json({
-          result: false,
-          reason: error instanceof Error ? error.message : 'Contract verification failed'
-        });
-        return;
-      }
-    }
+    console.log(`Processing risk assessment for ${address} on ${chain}...`);
 
+    // Determine address type
+    const addressType = getAddressType(address);
+    
     // Collect data from all providers
     const collectedData = await dataCollector.collectData(address);
     
@@ -183,6 +172,7 @@ app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => 
       result: true,
       data: {
         address: address,
+        chain: chain,
         addressType: addressType,
         riskScore: riskAssessment.finalScore,
         description: generateDescription(addressType, riskAssessment.explanations, riskAssessment.finalScore, riskAssessment.confidence),
@@ -210,7 +200,7 @@ app.get('/health', (req: Request, res: Response): void => {
       status: 'healthy',
       environment: config.getEnvironment(),
       endpoints: {
-        risk: '/risk/:address',
+        risk: '/risk/:chain/:address',
         search: '/search/:address',
         health: '/health',
         chains: '/chains',
