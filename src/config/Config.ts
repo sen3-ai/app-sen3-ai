@@ -53,6 +53,7 @@ export interface ApiCredentials {
   solscanApiKey?: string;
   amlbotTmId?: string;
   amlbotAccessKey?: string;
+  bubblemapApiKey?: string;
 }
 
 export interface AppConfig {
@@ -179,7 +180,8 @@ export class Config {
       bscscanApiKey: process.env.BSCSCAN_API_KEY,
       solscanApiKey: process.env.SOLSCAN_API_KEY,
       amlbotTmId: process.env.AMLBOT_TM_ID,
-      amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY
+      amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY,
+      bubblemapApiKey: process.env.BUBBLEMAP_API_KEY
     };
   }
 
@@ -236,6 +238,13 @@ export class Config {
         enabled: true,
         priority: 4,
         timeout: 6000,
+        retries: 3
+      },
+      {
+        name: 'bubblemap',
+        enabled: true,
+        priority: 5,
+        timeout: 8000,
         retries: 3
       }
     ];
