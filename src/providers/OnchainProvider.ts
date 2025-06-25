@@ -36,7 +36,10 @@ export class OnchainProvider extends BaseProvider {
         gasUsed: Math.floor(Math.random() * 2000000),
         contractCount: Math.floor(Math.random() * 20),
         suspiciousPatterns: Math.random() > 0.8 ? ['Unusual gas patterns'] : [],
-        dappInteractions: ['Uniswap', 'OpenSea', 'Aave'].slice(0, Math.floor(Math.random() * 3) + 1)
+        dappInteractions: ['Uniswap', 'OpenSea', 'Aave'].slice(0, Math.floor(Math.random() * 3) + 1),
+        // Required fields for tests
+        riskScore: this.generateRiskScore(),
+        source: 'onchain'
       };
     });
   }
@@ -137,5 +140,9 @@ export class OnchainProvider extends BaseProvider {
 
   private generateGasUsage(): number {
     return Math.random() * 1000;
+  }
+
+  private generateRiskScore(): number {
+    return Math.random() * 100;
   }
 } 

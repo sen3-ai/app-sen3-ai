@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
 import type { ProviderConfig } from '../config/Config';
@@ -129,9 +130,6 @@ export class DexScreenerProvider extends BaseProvider {
   }
 
   private async callDexScreenerAPI(address: string, chain: string, timeout: number): Promise<DexScreenerResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
       const url = `${this.baseUrl}/${chain}/${address}`;
       
@@ -140,10 +138,8 @@ export class DexScreenerProvider extends BaseProvider {
         headers: {
           'Content-Type': 'application/json'
         },
-        signal: controller.signal
+        timeout: timeout
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -153,7 +149,6 @@ export class DexScreenerProvider extends BaseProvider {
       return data as DexScreenerResponse;
 
     } catch (error) {
-      clearTimeout(timeoutId);
       throw error;
     }
   }

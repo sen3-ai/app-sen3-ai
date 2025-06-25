@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
 import crypto from 'crypto';
@@ -61,9 +62,6 @@ export class AMLBotProvider extends BaseProvider {
   }
 
   private async callAMLBotAPI(address: string, tmId: string, accessKey: string, timeout: number): Promise<AMLBotResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
       // Calculate token as md5(address:accessKey:tmId)
       const tokenString = `${address}:${accessKey}:${tmId}`;
@@ -83,10 +81,8 @@ export class AMLBotProvider extends BaseProvider {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: params.toString(),
-        signal: controller.signal
+        timeout: timeout
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -96,7 +92,6 @@ export class AMLBotProvider extends BaseProvider {
       return data as AMLBotResponse;
 
     } catch (error) {
-      clearTimeout(timeoutId);
       throw error;
     }
   }

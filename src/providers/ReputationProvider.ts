@@ -35,7 +35,10 @@ export class ReputationProvider extends BaseProvider {
         isBlacklisted: this.generateBlacklistStatus(),
         reports: Math.floor(Math.random() * 20),
         positiveFeedback: Math.floor(Math.random() * 100),
-        negativeFeedback: Math.floor(Math.random() * 100)
+        negativeFeedback: Math.floor(Math.random() * 100),
+        // Required fields for tests
+        riskScore: this.generateReputationScore(),
+        source: 'reputation'
       };
     });
   }

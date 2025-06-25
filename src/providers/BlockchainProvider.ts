@@ -34,7 +34,10 @@ export class BlockchainProvider extends BaseProvider {
         totalVolume: Math.floor(Math.random() * 2000000),
         firstSeen: this.generateRandomDate(),
         lastSeen: this.generateRandomDate(),
-        averageTransactionValue: Math.floor(Math.random() * 1000)
+        averageTransactionValue: Math.floor(Math.random() * 1000),
+        // Required fields for tests
+        riskScore: this.generateRiskScore(),
+        source: 'blockchain'
       };
     });
   }
@@ -69,5 +72,9 @@ export class BlockchainProvider extends BaseProvider {
     
     const count = Math.floor(Math.random() * 5);
     return contracts.slice(0, count);
+  }
+
+  private generateRiskScore(): number {
+    return Math.random() * 100; // Random risk score between 0 and 100
   }
 } 

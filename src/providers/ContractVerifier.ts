@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { Config } from '../config/Config';
 
 export interface ChainConfig {

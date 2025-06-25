@@ -32,7 +32,10 @@ export class SocialProvider extends BaseProvider {
           retries: providerConfig?.retries || 2
         },
         // Legacy/compat fields for processor/tests
-        influencers: Math.floor(Math.random() * 10)
+        influencers: Math.floor(Math.random() * 10),
+        // Required fields for tests
+        riskScore: this.generateRiskScore(),
+        source: 'social'
       };
     });
   }
@@ -72,5 +75,9 @@ export class SocialProvider extends BaseProvider {
     }
     
     return verified;
+  }
+
+  private generateRiskScore(): number {
+    return Math.random() * 100; // Random risk score between 0 and 100
   }
 } 

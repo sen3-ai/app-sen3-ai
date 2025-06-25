@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
 import type { ProviderConfig } from '../config/Config';

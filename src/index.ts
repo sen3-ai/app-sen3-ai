@@ -10,6 +10,8 @@ import { ReputationProvider } from './providers/ReputationProvider';
 import { SocialProvider } from './providers/SocialProvider';
 import { OnchainProvider } from './providers/OnchainProvider';
 import { AMLBotProvider } from './providers/AMLBotProvider';
+import { BubblemapProvider } from './providers/BubblemapProvider';
+import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 
 // Load configuration
@@ -56,6 +58,12 @@ providerConfigs.forEach(providerConfig => {
       break;
     case 'amlbot':
       dataCollector.addProvider(new AMLBotProvider());
+      break;
+    case 'bubblemap':
+      dataCollector.addProvider(new BubblemapProvider());
+      break;
+    case 'dexscreener':
+      dataCollector.addProvider(new DexScreenerProvider());
       break;
     default:
       console.warn(`Unknown provider: ${providerConfig.name}`);
@@ -149,12 +157,9 @@ app.get('/risk/:address', async (req: Request, res: Response): Promise<void> => 
           return;
         }
         
-        // Skip contract verification in test mode
-        if (process.env.NODE_ENV !== 'test') {
-          // Use the chain parameter if provided, otherwise use default detection
-          const chainName = typeof chain === 'string' ? chain : undefined;
-          await contractVerifier.validateContractAddress(address, chainName);
-        }
+        // Use the chain parameter if provided, otherwise use default detection
+        const chainName = typeof chain === 'string' ? chain : undefined;
+        await contractVerifier.validateContractAddress(address, chainName);
       } catch (error) {
         res.status(400).json({
           result: false,
