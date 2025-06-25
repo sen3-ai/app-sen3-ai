@@ -12,6 +12,7 @@ import { OnchainProvider } from './providers/OnchainProvider';
 import { AMLBotProvider } from './providers/AMLBotProvider';
 import { BubblemapProvider } from './providers/BubblemapProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
+import { TwitterProvider } from './providers/TwitterProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 
 // Load configuration
@@ -64,6 +65,9 @@ providerConfigs.forEach(providerConfig => {
       break;
     case 'dexscreener':
       dataCollector.addProvider(new DexScreenerProvider());
+      break;
+    case 'twitter':
+      dataCollector.addProvider(new TwitterProvider(config));
       break;
     default:
       console.warn(`Unknown provider: ${providerConfig.name}`);

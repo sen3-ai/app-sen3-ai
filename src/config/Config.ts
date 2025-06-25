@@ -54,6 +54,7 @@ export interface ApiCredentials {
   amlbotTmId?: string;
   amlbotAccessKey?: string;
   bubblemapApiKey?: string;
+  twitterApiKey?: string;
 }
 
 export interface AppConfig {
@@ -116,6 +117,10 @@ export class Config {
 
   public getLogLevel(): string {
     return this.config.logLevel;
+  }
+
+  public getTwitterApiKey(): string | undefined {
+    return this.config.credentials.twitterApiKey;
   }
 
   private loadConfig(): AppConfig {
@@ -181,7 +186,8 @@ export class Config {
       solscanApiKey: process.env.SOLSCAN_API_KEY,
       amlbotTmId: process.env.AMLBOT_TM_ID,
       amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY,
-      bubblemapApiKey: process.env.BUBBLEMAP_API_KEY
+      bubblemapApiKey: process.env.BUBBLEMAP_API_KEY,
+      twitterApiKey: process.env.TWITTER_API_KEY
     };
   }
 
@@ -253,6 +259,13 @@ export class Config {
         priority: 6,
         timeout: 5000,
         retries: 2
+      },
+      {
+        name: 'twitter',
+        enabled: true,
+        priority: 7,
+        timeout: 10000,
+        retries: 1
       }
     ];
   }

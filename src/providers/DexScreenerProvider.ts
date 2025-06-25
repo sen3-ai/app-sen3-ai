@@ -53,9 +53,7 @@ interface DexScreenerPair {
   pairCreatedAt: number;
 }
 
-interface DexScreenerResponse {
-  pairs: DexScreenerPair[];
-}
+interface DexScreenerResponse extends Array<DexScreenerPair> {}
 
 // Chain mapping from our internal names to DexScreener chainId values
 const CHAIN_MAPPING: { [key: string]: string } = {
@@ -93,7 +91,7 @@ export class DexScreenerProvider extends BaseProvider {
         try {
           const response = await this.callDexScreenerAPI(address, targetChain, timeout);
           
-          if (response && response.pairs && response.pairs.length > 0) {
+          if (response && response.length > 0) {
             return this.transformDexScreenerResponse(response, address, targetChain);
           } else {
             console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
@@ -154,12 +152,12 @@ export class DexScreenerProvider extends BaseProvider {
   }
 
   private transformDexScreenerResponse(response: DexScreenerResponse, address: string, chain: string): any {
-    if (!response.pairs || response.pairs.length === 0) {
+    if (response.length === 0) {
       return this.generateMockData(address, chain);
     }
 
     // Get the most liquid pair (highest USD liquidity)
-    const bestPair = response.pairs.reduce((best, current) => {
+    const bestPair = response.reduce((best, current) => {
       return (current.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? current : best;
     });
 
@@ -213,7 +211,7 @@ export class DexScreenerProvider extends BaseProvider {
       },
       source: 'dexscreener',
       rawData: response,
-      allPairs: response.pairs
+      allPairs: response
     };
   }
 
