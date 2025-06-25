@@ -209,9 +209,17 @@ app.get('/health', (req: Request, res: Response): void => {
     data: {
       status: 'healthy',
       environment: config.getEnvironment(),
+      endpoints: {
+        risk: '/risk/:address',
+        search: '/search/:address',
+        health: '/health',
+        chains: '/chains',
+        config: '/config'
+      },
       providers: dataCollector.getProviders().map(p => p.getName()),
       processors: processorManager.getProcessors().map(p => p.getName()),
       blockchains: config.getBlockchainConfigs().map(bc => bc.name),
+      searchSupportedChains: ['ethereum', 'bsc', 'base', 'solana'],
       contractVerification: {
         enabled: contractVerifier.hasApiKeys(),
         availableChains: contractVerifier.getAvailableChains()
@@ -264,6 +272,99 @@ app.get('/config', (req: Request, res: Response): void => {
     result: true,
     data: safeConfig
   });
+});
+
+// Add new endpoint for cross-chain contract search
+app.get('/search/:address', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { address } = req.params;
+    
+    if (!address || typeof address !== 'string') {
+      res.status(400).json({
+        result: false,
+        reason: 'Missing or invalid address parameter'
+      });
+      return;
+    }
+
+    if (address.trim() === '') {
+      res.status(400).json({
+        result: false,
+        reason: 'Address cannot be empty'
+      });
+      return;
+    }
+
+    console.log(`Searching for contract ${address} across supported blockchains...`);
+
+    // Supported blockchains for search
+    const supportedChains = ['ethereum', 'bsc', 'base', 'solana'];
+    const matches: Array<{
+      blockchain: string;
+      name: string;
+      owner: string;
+      symbol?: string;
+      priceUsd?: number;
+      liquidityUsd?: number;
+      volume24h?: number;
+      dexId?: string;
+      pairAddress?: string;
+    }> = [];
+
+    // Search across all supported chains
+    for (const chain of supportedChains) {
+      try {
+        const dexscreenerProvider = new DexScreenerProvider();
+        const result = await dexscreenerProvider.fetch(address, chain);
+        
+        // Check if we got real data (not mock data)
+        if (result && result.source === 'dexscreener' && result.rawData && result.rawData.length > 0) {
+          // Process each pair found for this chain
+          result.rawData.forEach((pair: any) => {
+            // Only include if the base token matches our search address
+            if (pair.baseToken && pair.baseToken.address.toLowerCase() === address.toLowerCase()) {
+              matches.push({
+                blockchain: chain,
+                name: pair.baseToken.name || 'Unknown',
+                owner: pair.baseToken.address,
+                symbol: pair.baseToken.symbol,
+                priceUsd: parseFloat(pair.priceUsd || '0'),
+                liquidityUsd: pair.liquidity?.usd || 0,
+                volume24h: pair.volume?.h24 || 0,
+                dexId: pair.dexId,
+                pairAddress: pair.pairAddress
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`Error searching on ${chain}:`, error instanceof Error ? error.message : 'Unknown error');
+        // Continue with other chains even if one fails
+      }
+    }
+
+    // Remove duplicates (same blockchain and owner)
+    const uniqueMatches = matches.filter((match, index, self) => 
+      index === self.findIndex(m => m.blockchain === match.blockchain && m.owner.toLowerCase() === match.owner.toLowerCase())
+    );
+
+    res.json({
+      result: true,
+      data: {
+        address: address,
+        matches: uniqueMatches,
+        totalMatches: uniqueMatches.length,
+        searchedChains: supportedChains,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      result: false,
+      reason: error instanceof Error ? error.message : 'Internal server error occurred while searching'
+    });
+  }
 });
 
 // Export app for testing
