@@ -159,13 +159,53 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
 
     console.log(`Processing risk assessment for ${address} on ${chain}...`);
 
-    // Determine address type
+    // Step 1: Fetch basic contract information from DexScreener
+    console.log(`Fetching basic contract information from DexScreener...`);
+    const dexscreenerProvider = new DexScreenerProvider();
+    const contractInfo = await dexscreenerProvider.fetch(address, chain);
+    
+    let basicInfo = {
+      name: 'Unknown',
+      symbol: 'Unknown',
+      priceUsd: 0,
+      liquidityUsd: 0,
+      volume24h: 0,
+      dexId: 'Unknown',
+      pairAddress: 'Unknown',
+      found: false
+    };
+
+    if (contractInfo && contractInfo.source === 'dexscreener' && contractInfo.rawData && contractInfo.rawData.length > 0) {
+      // Get the best pair (highest liquidity)
+      const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
+        const bestLiquidity = best.liquidity?.usd || 0;
+        const currentLiquidity = current.liquidity?.usd || 0;
+        return currentLiquidity > bestLiquidity ? current : best;
+      }, contractInfo.rawData[0]);
+
+      basicInfo = {
+        name: bestPair.baseToken?.name || 'Unknown',
+        symbol: bestPair.baseToken?.symbol || 'Unknown',
+        priceUsd: parseFloat(bestPair.priceUsd || '0'),
+        liquidityUsd: bestPair.liquidity?.usd || 0,
+        volume24h: bestPair.volume?.h24 || 0,
+        dexId: bestPair.dexId || 'Unknown',
+        pairAddress: bestPair.pairAddress || 'Unknown',
+        found: true
+      };
+      
+      console.log(`Found contract: ${basicInfo.name} (${basicInfo.symbol}) on ${basicInfo.dexId}`);
+    } else {
+      console.log(`No contract information found on DexScreener for ${chain}`);
+    }
+
+    // Step 2: Determine address type
     const addressType = getAddressType(address);
     
-    // Collect data from all providers
+    // Step 3: Collect data from all providers
     const collectedData = await dataCollector.collectData(address);
     
-    // Process data through all processors
+    // Step 4: Process data through all processors
     const riskAssessment = await processorManager.processData(address, addressType, collectedData);
     
     res.json({
@@ -174,6 +214,7 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
         address: address,
         chain: chain,
         addressType: addressType,
+        contractInfo: basicInfo,
         riskScore: riskAssessment.finalScore,
         description: generateDescription(addressType, riskAssessment.explanations, riskAssessment.finalScore, riskAssessment.confidence),
         confidence: riskAssessment.confidence,
