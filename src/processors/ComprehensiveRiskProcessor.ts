@@ -130,6 +130,79 @@ export class ComprehensiveRiskProcessor extends BaseResponseProcessor {
         }
       }
 
+      // Analyze Bubblemap data
+      if (collectedData.bubblemap && collectedData.bubblemap.status === 'success' && collectedData.bubblemap.rawData) {
+        const bubblemapData = collectedData.bubblemap.rawData;
+        
+        const decentralizationScore = bubblemapData.decentralization_score || 0;
+        const clusters = bubblemapData.clusters || [];
+        const identifiedSupply = bubblemapData.metadata?.identified_supply;
+
+        // Risk assessment based on decentralization score
+        if (decentralizationScore < 30) {
+          score += 25;
+          explanations.push(`Very low decentralization score (${decentralizationScore.toFixed(1)}) indicates high concentration risk`);
+        } else if (decentralizationScore < 50) {
+          score += 15;
+          explanations.push(`Low decentralization score (${decentralizationScore.toFixed(1)}) suggests concentration risk`);
+        } else if (decentralizationScore > 80) {
+          score -= 10;
+          explanations.push(`High decentralization score (${decentralizationScore.toFixed(1)}) indicates good distribution`);
+        }
+
+        // Risk assessment based on cluster analysis
+        if (clusters.length > 0) {
+          const largestCluster = clusters.reduce((max: any, cluster: any) => 
+            cluster.share > max.share ? cluster : max, clusters[0]);
+          
+          if (largestCluster.share > 0.5) {
+            score += 30;
+            explanations.push(`Large concentration detected: ${(largestCluster.share * 100).toFixed(1)}% in single cluster`);
+          } else if (largestCluster.share > 0.2) {
+            score += 15;
+            explanations.push(`Moderate concentration: ${(largestCluster.share * 100).toFixed(1)}% in largest cluster`);
+          } else if (largestCluster.share < 0.05) {
+            score -= 5;
+            explanations.push(`Good distribution: largest cluster only ${(largestCluster.share * 100).toFixed(1)}%`);
+          }
+
+          // Check for whale clusters
+          const whaleClusters = clusters.filter((cluster: any) => cluster.share > 0.1);
+          if (whaleClusters.length > 3) {
+            score += 10;
+            explanations.push(`${whaleClusters.length} large holder clusters detected`);
+          }
+        }
+
+        // Risk assessment based on identified supply distribution
+        if (identifiedSupply) {
+          const cexShare = identifiedSupply.share_in_cexs || 0;
+          const dexShare = identifiedSupply.share_in_dexs || 0;
+          const otherContractsShare = identifiedSupply.share_in_other_contracts || 0;
+
+          if (cexShare > 0.8) {
+            score += 15;
+            explanations.push(`High CEX concentration (${(cexShare * 100).toFixed(1)}%) indicates exchange risk`);
+          } else if (cexShare < 0.2) {
+            score -= 5;
+            explanations.push(`Low CEX concentration (${(cexShare * 100).toFixed(1)}%) suggests good distribution`);
+          }
+
+          if (otherContractsShare > 0.8) {
+            score += 20;
+            explanations.push(`High contract concentration (${(otherContractsShare * 100).toFixed(1)}%) indicates smart contract risk`);
+          }
+
+          if (dexShare < 0.1) {
+            score += 10;
+            explanations.push(`Very low DEX presence (${(dexShare * 100).toFixed(1)}%) suggests limited trading`);
+          }
+        }
+
+        // Add decentralization score to explanations
+        explanations.push(`Decentralization score: ${decentralizationScore.toFixed(1)}/100`);
+      }
+
       // Address type specific adjustments
       if (addressType === 'evm') {
         if (address.startsWith('0xabc')) {

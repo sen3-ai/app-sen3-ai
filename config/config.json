@@ -25,7 +25,8 @@
   "providers": [
     { "name": "amlbot", "enabled": true, "priority": 1, "timeout": 8000, "retries": 3 },
     { "name": "coingecko", "enabled": true, "priority": 2, "timeout": 10000, "retries": 2 },
-    { "name": "dexscreener", "enabled": true, "priority": 3, "timeout": 5000, "retries": 2 }
+    { "name": "dexscreener", "enabled": true, "priority": 3, "timeout": 5000, "retries": 2 },
+    { "name": "bubblemap", "enabled": true, "priority": 4, "timeout": 10000, "retries": 3 }
   ],
   "processors": [
     { "name": "comprehensive", "enabled": true }

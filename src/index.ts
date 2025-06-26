@@ -8,6 +8,7 @@ import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProces
 import { AMLBotProvider } from './providers/AMLBotProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { CoingeckoProvider } from './providers/CoingeckoProvider';
+import { BubblemapProvider } from './providers/BubblemapProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 
 // Load configuration
@@ -41,6 +42,7 @@ const providerRegistry: Record<string, any> = {
   amlbot: AMLBotProvider,
   coingecko: CoingeckoProvider,
   dexscreener: DexScreenerProvider,
+  bubblemap: BubblemapProvider,
 };
 
 // Add providers based on configuration
