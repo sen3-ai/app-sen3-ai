@@ -3,7 +3,10 @@
     "port": 3000,
     "host": "localhost",
     "cors": {
-      "origin": ["http://localhost:3000", "http://localhost:3001"],
+      "origin": [
+        "http://localhost:3000",
+        "http://localhost:3001"
+      ],
       "credentials": false
     }
   },
@@ -15,21 +18,72 @@
     "password": ""
   },
   "blockchains": [
-    { "name": "ethereum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
-    { "name": "polygon", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
-    { "name": "bsc", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
-    { "name": "arbitrum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
-    { "name": "optimism", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
-    { "name": "solana", "regex": "^[1-9A-HJ-NP-Za-km-z]{32,44}$", "enabled": true }
+    {
+      "name": "ethereum",
+      "regex": "^0x[0-9a-fA-F]{40}$",
+      "enabled": true
+    },
+    {
+      "name": "polygon",
+      "regex": "^0x[0-9a-fA-F]{40}$",
+      "enabled": true
+    },
+    {
+      "name": "bsc",
+      "regex": "^0x[0-9a-fA-F]{40}$",
+      "enabled": true
+    },
+    {
+      "name": "arbitrum",
+      "regex": "^0x[0-9a-fA-F]{40}$",
+      "enabled": true
+    },
+    {
+      "name": "optimism",
+      "regex": "^0x[0-9a-fA-F]{40}$",
+      "enabled": true
+    },
+    {
+      "name": "solana",
+      "regex": "^[1-9A-HJ-NP-Za-km-z]{32,44}$",
+      "enabled": true
+    }
   ],
   "providers": [
-    { "name": "amlbot", "enabled": true, "priority": 1, "timeout": 8000, "retries": 3 },
-    { "name": "coingecko", "enabled": true, "priority": 2, "timeout": 10000, "retries": 2 },
-    { "name": "dexscreener", "enabled": true, "priority": 3, "timeout": 5000, "retries": 2 },
-    { "name": "bubblemap", "enabled": true, "priority": 4, "timeout": 10000, "retries": 3 }
+    {
+      "name": "amlbot",
+      "enabled": true,
+      "priority": 1,
+      "timeout": 8000,
+      "retries": 3
+    },
+    {
+      "name": "coingecko",
+      "enabled": true,
+      "priority": 2,
+      "timeout": 8000,
+      "retries": 3
+    },
+    {
+      "name": "dexscreener",
+      "enabled": true,
+      "priority": 3,
+      "timeout": 8000,
+      "retries": 3
+    },
+    {
+      "name": "bubblemap",
+      "enabled": true,
+      "priority": 4,
+      "timeout": 8000,
+      "retries": 3
+    }
   ],
   "processors": [
-    { "name": "comprehensive", "enabled": true }
+    {
+      "name": "comprehensive",
+      "enabled": true
+    }
   ],
   "riskAssessment": {
     "volume24h": {
@@ -83,4 +137,4 @@
     "maxConcurrentRequests": 100,
     "requestTimeout": 30000
   }
-} 
+}

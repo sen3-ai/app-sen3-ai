@@ -557,7 +557,7 @@ app.post('/admin/config', (req: Request, res: Response): void => {
 
     // Save configuration to file
     const fs = require('fs');
-    const configPath = path.join(__dirname, '../../config/config.json');
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
     
     // Read current config to preserve any fields not in the form
     let currentConfig = {};
@@ -576,6 +576,9 @@ app.post('/admin/config', (req: Request, res: Response): void => {
     // Write back to file
     fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2));
     
+    // Reload configuration in the running application
+    config.reloadConfig();
+    
     res.json({
       success: true,
       message: 'Configuration saved successfully'
@@ -591,7 +594,7 @@ app.post('/admin/config', (req: Request, res: Response): void => {
 app.post('/admin/config/reset', (req: Request, res: Response): void => {
   try {
     const fs = require('fs');
-    const configPath = path.join(__dirname, '../../config/config.json');
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
     
     // Default configuration
     const defaultConfig = {
@@ -683,6 +686,9 @@ app.post('/admin/config/reset', (req: Request, res: Response): void => {
 
     fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
     
+    // Reload configuration in the running application
+    config.reloadConfig();
+    
     res.json({
       success: true,
       message: 'Configuration reset to defaults successfully'
@@ -708,13 +714,16 @@ app.post('/admin/provider', (req: Request, res: Response): void => {
 
     // Update provider in configuration
     const fs = require('fs');
-    const configPath = path.join(__dirname, '../../config/config.json');
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
     const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     
     const provider = configData.providers.find((p: any) => p.name === name);
     if (provider) {
       provider.enabled = enabled;
       fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+      
+      // Reload configuration in the running application
+      config.reloadConfig();
       
       res.json({
         success: true,

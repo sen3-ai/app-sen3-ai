@@ -120,6 +120,10 @@ export class Config {
     return this.config.logLevel;
   }
 
+  public reloadConfig(): void {
+    this.config = this.loadConfig();
+  }
+
   public getRiskAssessmentConfig(): any {
     const configPath = path.join(process.cwd(), 'config', 'config.json');
     try {

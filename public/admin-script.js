@@ -678,6 +678,18 @@ class AdminSettings {
     }
 
     collectFormData() {
+        // Get the default timeout from the form
+        const defaultTimeout = parseInt(document.getElementById('api-timeout').value) || 8000;
+        const defaultRetries = parseInt(document.getElementById('api-retries').value) || 3;
+        
+        // Get current providers and update their timeouts
+        const currentProviders = this.config?.providers || [];
+        const updatedProviders = currentProviders.map(provider => ({
+            ...provider,
+            timeout: defaultTimeout,
+            retries: defaultRetries
+        }));
+
         const formData = {
             riskAssessment: {
                 volume24h: {
@@ -730,7 +742,7 @@ class AdminSettings {
             logLevel: document.getElementById('log-level').value || 'info',
             database: this.config?.database || {},
             blockchains: this.config?.blockchains || [],
-            providers: this.config?.providers || [],
+            providers: updatedProviders,
             processors: this.config?.processors || [],
             features: this.config?.features || {},
             limits: this.config?.limits || {}
