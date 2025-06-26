@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import path from 'path';
 import { Config } from './config/Config';
 import { DataCollector } from './providers/DataCollector';
 import { ProcessorManager } from './processors/ProcessorManager';
@@ -24,6 +25,14 @@ app.use(cors({
   credentials: serverConfig.cors.credentials
 }));
 app.use(bodyParser.json());
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Root route - serve the main interface
+app.get('/', (req: Request, res: Response): void => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 // Enum for address types
 export enum AddressType {
