@@ -120,6 +120,48 @@ export class Config {
     return this.config.logLevel;
   }
 
+  public getRiskAssessmentConfig(): any {
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
+    try {
+      if (fs.existsSync(configPath)) {
+        const configFile = fs.readFileSync(configPath, 'utf8');
+        const baseConfig = JSON.parse(configFile);
+        return baseConfig.riskAssessment || {};
+      }
+    } catch (error) {
+      console.error('Error loading risk assessment config:', error);
+    }
+    return {};
+  }
+
+  public getFeaturesConfig(): any {
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
+    try {
+      if (fs.existsSync(configPath)) {
+        const configFile = fs.readFileSync(configPath, 'utf8');
+        const baseConfig = JSON.parse(configFile);
+        return baseConfig.features || {};
+      }
+    } catch (error) {
+      console.error('Error loading features config:', error);
+    }
+    return {};
+  }
+
+  public getLimitsConfig(): any {
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
+    try {
+      if (fs.existsSync(configPath)) {
+        const configFile = fs.readFileSync(configPath, 'utf8');
+        const baseConfig = JSON.parse(configFile);
+        return baseConfig.limits || {};
+      }
+    } catch (error) {
+      console.error('Error loading limits config:', error);
+    }
+    return {};
+  }
+
   public getTwitterApiKey(): string | undefined {
     return this.config.credentials.twitterApiKey;
   }

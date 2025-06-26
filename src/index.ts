@@ -36,6 +36,11 @@ app.get('/', (req: Request, res: Response): void => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Admin route - serve the admin interface
+app.get('/admin', (req: Request, res: Response): void => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // Enum for address types
 export enum AddressType {
   EVM = 'evm',
@@ -487,11 +492,6 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
 // Admin routes
 const configManager = ConfigManager.getInstance();
 
-// Admin page route
-app.get('/admin', (req: Request, res: Response): void => {
-  res.sendFile(path.join(__dirname, '../public/admin.html'));
-});
-
 // Risk Parameters endpoints
 app.get('/admin/risk-params', (req: Request, res: Response): void => {
   try {
@@ -522,8 +522,19 @@ app.post('/admin/risk-params', (req: Request, res: Response): void => {
 // Configuration endpoints
 app.get('/admin/config', (req: Request, res: Response): void => {
   try {
-    const config = configManager.getAdminConfig();
-    res.json(config);
+    const configData = {
+      server: config.getServerConfig(),
+      database: config.getDatabaseConfig(),
+      blockchains: config.getBlockchainConfigs(),
+      providers: config.getProviderConfigs(),
+      processors: config.getProcessorConfigs(),
+      riskAssessment: config.getRiskAssessmentConfig(),
+      logLevel: config.getLogLevel(),
+      features: config.getFeaturesConfig(),
+      limits: config.getLimitsConfig()
+    };
+    
+    res.json(configData);
   } catch (error) {
     res.status(500).json({
       error: 'Failed to load configuration',
@@ -534,13 +545,189 @@ app.get('/admin/config', (req: Request, res: Response): void => {
 
 app.post('/admin/config', (req: Request, res: Response): void => {
   try {
-    const config = req.body;
-    configManager.setAdminConfig(config);
-    configManager.addLog('info', 'Configuration updated via admin panel');
-    res.json({ success: true, message: 'Configuration saved successfully' });
+    const newConfig = req.body;
+    
+    // Validate required fields
+    if (!newConfig.riskAssessment) {
+      res.status(400).json({
+        error: 'Missing riskAssessment configuration'
+      });
+      return;
+    }
+
+    // Save configuration to file
+    const fs = require('fs');
+    const configPath = path.join(__dirname, '../../config/config.json');
+    
+    // Read current config to preserve any fields not in the form
+    let currentConfig = {};
+    try {
+      currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (error) {
+      console.warn('Could not read current config, starting fresh');
+    }
+
+    // Merge configurations
+    const mergedConfig = {
+      ...currentConfig,
+      ...newConfig
+    };
+
+    // Write back to file
+    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2));
+    
+    res.json({
+      success: true,
+      message: 'Configuration saved successfully'
+    });
   } catch (error) {
     res.status(500).json({
       error: 'Failed to save configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/config/reset', (req: Request, res: Response): void => {
+  try {
+    const fs = require('fs');
+    const configPath = path.join(__dirname, '../../config/config.json');
+    
+    // Default configuration
+    const defaultConfig = {
+      "server": {
+        "port": 3000,
+        "host": "localhost",
+        "cors": {
+          "origin": ["http://localhost:3000", "http://localhost:3001"],
+          "credentials": false
+        }
+      },
+      "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "sen3ai",
+        "username": "postgres",
+        "password": ""
+      },
+      "blockchains": [
+        { "name": "ethereum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+        { "name": "polygon", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+        { "name": "bsc", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+        { "name": "arbitrum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+        { "name": "optimism", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+        { "name": "solana", "regex": "^[1-9A-HJ-NP-Za-km-z]{32,44}$", "enabled": true }
+      ],
+      "providers": [
+        { "name": "amlbot", "enabled": true, "priority": 1, "timeout": 8000, "retries": 3 },
+        { "name": "coingecko", "enabled": true, "priority": 2, "timeout": 10000, "retries": 2 },
+        { "name": "dexscreener", "enabled": true, "priority": 3, "timeout": 5000, "retries": 2 },
+        { "name": "bubblemap", "enabled": true, "priority": 4, "timeout": 10000, "retries": 3 }
+      ],
+      "processors": [
+        { "name": "comprehensive", "enabled": true }
+      ],
+      "riskAssessment": {
+        "volume24h": {
+          "low": 1000000,
+          "medium": 100000,
+          "high": 100000
+        },
+        "holdersCount": {
+          "low": 2000,
+          "medium": 300,
+          "high": 300
+        },
+        "amlbotScore": {
+          "low": 30,
+          "medium": 70,
+          "high": 70
+        },
+        "top3ClustersPercentage": {
+          "low": 20,
+          "medium": 50,
+          "high": 80,
+          "critical": 80
+        },
+        "connectedWalletsThreshold": 50,
+        "tokenAge": {
+          "low": 30,
+          "medium": 7,
+          "high": 7
+        },
+        "marketCap": {
+          "low": 100000000,
+          "medium": 10000000,
+          "high": 1000000,
+          "critical": 1000000
+        },
+        "fullyDilutedValuation": {
+          "low": 3,
+          "medium": 10,
+          "high": 10
+        }
+      },
+      "logLevel": "info",
+      "features": {
+        "caching": true,
+        "rateLimiting": true,
+        "metrics": true,
+        "healthChecks": true
+      },
+      "limits": {
+        "maxAddressesPerRequest": 10,
+        "maxConcurrentRequests": 100,
+        "requestTimeout": 30000
+      }
+    };
+
+    fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+    
+    res.json({
+      success: true,
+      message: 'Configuration reset to defaults successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to reset configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/provider', (req: Request, res: Response): void => {
+  try {
+    const { name, enabled } = req.body;
+    
+    if (!name || typeof enabled !== 'boolean') {
+      res.status(400).json({
+        error: 'Missing or invalid provider name or enabled status'
+      });
+      return;
+    }
+
+    // Update provider in configuration
+    const fs = require('fs');
+    const configPath = path.join(__dirname, '../../config/config.json');
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    
+    const provider = configData.providers.find((p: any) => p.name === name);
+    if (provider) {
+      provider.enabled = enabled;
+      fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+      
+      res.json({
+        success: true,
+        message: `Provider ${name} ${enabled ? 'enabled' : 'disabled'} successfully`
+      });
+    } else {
+      res.status(404).json({
+        error: `Provider ${name} not found`
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to update provider',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

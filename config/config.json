@@ -31,6 +31,46 @@
   "processors": [
     { "name": "comprehensive", "enabled": true }
   ],
+  "riskAssessment": {
+    "volume24h": {
+      "low": 1000000,
+      "medium": 100000,
+      "high": 100000
+    },
+    "holdersCount": {
+      "low": 2000,
+      "medium": 300,
+      "high": 300
+    },
+    "amlbotScore": {
+      "low": 30,
+      "medium": 70,
+      "high": 70
+    },
+    "top3ClustersPercentage": {
+      "low": 20,
+      "medium": 50,
+      "high": 80,
+      "critical": 80
+    },
+    "connectedWalletsThreshold": 50,
+    "tokenAge": {
+      "low": 30,
+      "medium": 7,
+      "high": 7
+    },
+    "marketCap": {
+      "low": 100000000,
+      "medium": 10000000,
+      "high": 1000000,
+      "critical": 1000000
+    },
+    "fullyDilutedValuation": {
+      "low": 3,
+      "medium": 10,
+      "high": 10
+    }
+  },
   "logLevel": "info",
   "features": {
     "caching": true,

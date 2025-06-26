@@ -3,183 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sen3AI Admin Panel</title>
+    <title>Sen3AI - Admin Settings</title>
     <link rel="stylesheet" href="admin-styles.css">
 </head>
 <body>
     <div class="admin-container">
         <header class="admin-header">
-            <h1>Sen3AI Admin Panel</h1>
-            <nav class="admin-nav">
-                <button class="nav-btn active" data-tab="risk-params">Risk Parameters</button>
-                <button class="nav-btn" data-tab="config">Configuration</button>
-                <button class="nav-btn" data-tab="providers">Providers</button>
-                <button class="nav-btn" data-tab="logs">System Logs</button>
-            </nav>
+            <h1>🔧 Sen3AI Admin Settings</h1>
+            <p>Configure risk assessment parameters and system settings</p>
         </header>
 
-        <main class="admin-content">
-            <!-- Risk Parameters Tab -->
-            <div class="tab-content active" id="risk-params">
-                <div class="section-header">
-                    <h2>Risk Calculation Parameters</h2>
-                    <p>Adjust how risk scores are calculated and interpreted</p>
-                </div>
+        <div class="admin-content">
+            <section class="settings-section">
+                <h2>📊 Risk Assessment Parameters</h2>
                 
-                <div class="params-grid">
-                    <div class="param-group">
-                        <h3>Score Thresholds</h3>
-                        <div class="param-item">
-                            <label for="low-risk-threshold">Low Risk Threshold:</label>
-                            <input type="number" id="low-risk-threshold" min="0" max="100" value="30">
-                            <span class="help-text">Scores below this are considered low risk</span>
+                <div class="setting-group">
+                    <h3>24h Volume Thresholds (USD)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="volume-low">Low Risk (>):</label>
+                            <input type="number" id="volume-low" placeholder="1000000">
+                            <span class="unit">USD</span>
                         </div>
-                        <div class="param-item">
-                            <label for="medium-risk-threshold">Medium Risk Threshold:</label>
-                            <input type="number" id="medium-risk-threshold" min="0" max="100" value="70">
-                            <span class="help-text">Scores between low and this are medium risk</span>
+                        <div class="input-group">
+                            <label for="volume-medium">Medium Risk (100k - 1M):</label>
+                            <input type="number" id="volume-medium" placeholder="100000">
+                            <span class="unit">USD</span>
                         </div>
-                    </div>
-
-                    <div class="param-group">
-                        <h3>Provider Weights</h3>
-                        <div class="param-item">
-                            <label for="amlbot-weight">AMLBot Weight:</label>
-                            <input type="number" id="amlbot-weight" min="0" max="1" step="0.1" value="0.4">
-                            <span class="help-text">Weight for AMLBot risk assessment (0-1)</span>
-                        </div>
-                        <div class="param-item">
-                            <label for="coingecko-weight">Coingecko Weight:</label>
-                            <input type="number" id="coingecko-weight" min="0" max="1" step="0.1" value="0.3">
-                            <span class="help-text">Weight for Coingecko data (0-1)</span>
-                        </div>
-                        <div class="param-item">
-                            <label for="dexscreener-weight">DexScreener Weight:</label>
-                            <input type="number" id="dexscreener-weight" min="0" max="1" step="0.1" value="0.2">
-                            <span class="help-text">Weight for DexScreener data (0-1)</span>
-                        </div>
-                        <div class="param-item">
-                            <label for="bubblemap-weight">Bubblemap Weight:</label>
-                            <input type="number" id="bubblemap-weight" min="0" max="1" step="0.1" value="0.1">
-                            <span class="help-text">Weight for Bubblemap data (0-1)</span>
-                        </div>
-                    </div>
-
-                    <div class="param-group">
-                        <h3>Risk Factors</h3>
-                        <div class="param-item">
-                            <label for="liquidity-threshold">Minimum Liquidity (USD):</label>
-                            <input type="number" id="liquidity-threshold" min="0" value="10000">
-                            <span class="help-text">Minimum liquidity to consider token safe</span>
-                        </div>
-                        <div class="param-item">
-                            <label for="volume-threshold">Minimum 24h Volume (USD):</label>
-                            <input type="number" id="volume-threshold" min="0" value="5000">
-                            <span class="help-text">Minimum volume to consider token active</span>
-                        </div>
-                        <div class="param-item">
-                            <label for="age-threshold">Minimum Age (days):</label>
-                            <input type="number" id="age-threshold" min="0" value="30">
-                            <span class="help-text">Minimum age to consider token established</span>
+                        <div class="input-group">
+                            <label for="volume-high">High Risk (<):</label>
+                            <input type="number" id="volume-high" placeholder="100000">
+                            <span class="unit">USD</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="saveRiskParams()">Save Parameters</button>
-                    <button class="btn btn-secondary" onclick="resetRiskParams()">Reset to Defaults</button>
-                    <button class="btn btn-test" onclick="testRiskCalculation()">Test Calculation</button>
+                <div class="setting-group">
+                    <h3>Holders Count Thresholds</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="holders-low">Low Risk (>):</label>
+                            <input type="number" id="holders-low" placeholder="2000">
+                            <span class="unit">holders</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="holders-medium">Medium Risk (300 - 2000):</label>
+                            <input type="number" id="holders-medium" placeholder="300">
+                            <span class="unit">holders</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="holders-high">High Risk (<):</label>
+                            <input type="number" id="holders-high" placeholder="300">
+                            <span class="unit">holders</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Configuration Tab -->
-            <div class="tab-content" id="config">
-                <div class="section-header">
-                    <h2>System Configuration</h2>
-                    <p>Manage system-wide configuration settings</p>
+                <div class="setting-group">
+                    <h3>AMLBot Score Thresholds (%)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="amlbot-low">Low Risk (≤):</label>
+                            <input type="number" id="amlbot-low" placeholder="30">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="amlbot-medium">Medium Risk (31 - 70):</label>
+                            <input type="number" id="amlbot-medium" placeholder="70">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="amlbot-high">High Risk (>):</label>
+                            <input type="number" id="amlbot-high" placeholder="70">
+                            <span class="unit">%</span>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="setting-group">
+                    <h3>Top 3 Clusters Percentage (%)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="clusters-low">Low Risk (<):</label>
+                            <input type="number" id="clusters-low" placeholder="20">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="clusters-medium">Medium Risk (20 - 50):</label>
+                            <input type="number" id="clusters-medium" placeholder="50">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="clusters-high">High Risk (50 - 80):</label>
+                            <input type="number" id="clusters-high" placeholder="80">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="clusters-critical">Critical Risk (>):</label>
+                            <input type="number" id="clusters-critical" placeholder="80">
+                            <span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Connected Wallets Threshold</h3>
+                    <div class="input-group">
+                        <label for="connected-wallets">Top % share same cluster (risky flag):</label>
+                        <input type="number" id="connected-wallets" placeholder="50">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Token Age Thresholds (days)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="age-low">Low Risk (>):</label>
+                            <input type="number" id="age-low" placeholder="30">
+                            <span class="unit">days</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="age-medium">Medium Risk (7 - 30):</label>
+                            <input type="number" id="age-medium" placeholder="7">
+                            <span class="unit">days</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="age-high">High Risk (<):</label>
+                            <input type="number" id="age-high" placeholder="7">
+                            <span class="unit">days</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Market Cap Thresholds (USD)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="marketcap-low">Low Risk (>):</label>
+                            <input type="number" id="marketcap-low" placeholder="100000000">
+                            <span class="unit">USD</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="marketcap-medium">Medium Risk (10M - 100M):</label>
+                            <input type="number" id="marketcap-medium" placeholder="10000000">
+                            <span class="unit">USD</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="marketcap-high">High Risk (1M - 10M):</label>
+                            <input type="number" id="marketcap-high" placeholder="1000000">
+                            <span class="unit">USD</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="marketcap-critical">Critical Risk (<):</label>
+                            <input type="number" id="marketcap-critical" placeholder="1000000">
+                            <span class="unit">USD</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Fully Diluted Valuation (vs Market Cap)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="fdv-low">Low Risk (<):</label>
+                            <input type="number" id="fdv-low" placeholder="3">
+                            <span class="unit">x</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="fdv-medium">Medium Risk (3x - 10x):</label>
+                            <input type="number" id="fdv-medium" placeholder="10">
+                            <span class="unit">x</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="fdv-high">High Risk (>):</label>
+                            <input type="number" id="fdv-high" placeholder="10">
+                            <span class="unit">x</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <h2>⚙️ System Configuration</h2>
                 
-                <div class="config-section">
+                <div class="setting-group">
                     <h3>Server Settings</h3>
-                    <div class="config-item">
-                        <label for="server-port">Server Port:</label>
-                        <input type="number" id="server-port" min="1" max="65535" value="3000">
+                    <div class="input-group">
+                        <label for="server-port">Port:</label>
+                        <input type="number" id="server-port" placeholder="3000">
                     </div>
-                    <div class="config-item">
+                    <div class="input-group">
                         <label for="log-level">Log Level:</label>
                         <select id="log-level">
-                            <option value="error">Error</option>
-                            <option value="warn">Warning</option>
-                            <option value="info" selected>Info</option>
                             <option value="debug">Debug</option>
+                            <option value="info">Info</option>
+                            <option value="warn">Warning</option>
+                            <option value="error">Error</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="config-section">
+                <div class="setting-group">
                     <h3>API Settings</h3>
-                    <div class="config-item">
-                        <label for="timeout-ms">Request Timeout (ms):</label>
-                        <input type="number" id="timeout-ms" min="1000" max="30000" value="8000">
+                    <div class="input-group">
+                        <label for="api-timeout">Default Timeout (ms):</label>
+                        <input type="number" id="api-timeout" placeholder="8000">
                     </div>
-                    <div class="config-item">
-                        <label for="retry-attempts">Retry Attempts:</label>
-                        <input type="number" id="retry-attempts" min="1" max="5" value="3">
+                    <div class="input-group">
+                        <label for="api-retries">Retry Attempts:</label>
+                        <input type="number" id="api-retries" placeholder="3">
                     </div>
                 </div>
 
+                <div class="setting-group">
+                    <h3>Data Providers</h3>
+                    <div class="provider-list" id="provider-list">
+                        <!-- Providers will be loaded dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <section class="actions-section">
                 <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
-                    <button class="btn btn-secondary" onclick="resetConfig()">Reset to Defaults</button>
-                    <button class="btn btn-restart" onclick="restartServer()">Restart Server</button>
+                    <button type="button" id="load-config" class="btn btn-secondary">📥 Load Current Config</button>
+                    <button type="button" id="save-config" class="btn btn-primary">💾 Save Configuration</button>
+                    <button type="button" id="reset-defaults" class="btn btn-warning">🔄 Reset to Defaults</button>
+                    <button type="button" id="back-to-main" class="btn btn-secondary">🏠 Back to Main</button>
                 </div>
-            </div>
+            </section>
 
-            <!-- Providers Tab -->
-            <div class="tab-content" id="providers">
-                <div class="section-header">
-                    <h2>Data Providers</h2>
-                    <p>Manage and configure data providers</p>
-                </div>
-                
-                <div class="providers-grid" id="providers-grid">
-                    <!-- Providers will be loaded dynamically -->
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="saveProviders()">Save Provider Settings</button>
-                    <button class="btn btn-test" onclick="testProviders()">Test All Providers</button>
-                </div>
-            </div>
-
-            <!-- Logs Tab -->
-            <div class="tab-content" id="logs">
-                <div class="section-header">
-                    <h2>System Logs</h2>
-                    <p>View and manage system logs</p>
-                </div>
-                
-                <div class="logs-controls">
-                    <button class="btn btn-secondary" onclick="refreshLogs()">Refresh Logs</button>
-                    <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
-                    <button class="btn btn-secondary" onclick="downloadLogs()">Download Logs</button>
-                </div>
-                
-                <div class="logs-container">
-                    <div class="logs-header">
-                        <span>Recent Logs</span>
-                        <label>
-                            <input type="checkbox" id="auto-refresh" checked> Auto-refresh
-                        </label>
-                    </div>
-                    <div class="logs-content" id="logs-content">
-                        <!-- Logs will be loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <div class="notification" id="notification"></div>
+            <div id="status-message" class="status-message"></div>
+        </div>
     </div>
 
     <script src="admin-script.js"></script>

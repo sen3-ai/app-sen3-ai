@@ -498,4 +498,315 @@ function clearLogs() {
 
 function downloadLogs() {
     adminPanel.downloadLogs();
-} 
+}
+
+// Admin Settings Management
+class AdminSettings {
+    constructor() {
+        this.config = null;
+        this.initializeEventListeners();
+        this.loadCurrentConfig();
+    }
+
+    initializeEventListeners() {
+        // Action buttons
+        document.getElementById('load-config').addEventListener('click', () => this.loadCurrentConfig());
+        document.getElementById('save-config').addEventListener('click', () => this.saveConfiguration());
+        document.getElementById('reset-defaults').addEventListener('click', () => this.resetToDefaults());
+        document.getElementById('back-to-main').addEventListener('click', () => window.location.href = '/');
+
+        // Provider toggles will be added dynamically
+    }
+
+    async loadCurrentConfig() {
+        try {
+            this.showStatus('Loading current configuration...', 'info');
+            
+            const response = await fetch('/admin/config');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            this.config = await response.json();
+            this.populateForm();
+            this.showStatus('Configuration loaded successfully!', 'success');
+        } catch (error) {
+            console.error('Error loading config:', error);
+            this.showStatus(`Error loading configuration: ${error.message}`, 'error');
+        }
+    }
+
+    populateForm() {
+        if (!this.config) return;
+
+        // Risk Assessment Parameters
+        const risk = this.config.riskAssessment || {};
+        
+        // 24h Volume
+        if (risk.volume24h) {
+            document.getElementById('volume-low').value = risk.volume24h.low || '';
+            document.getElementById('volume-medium').value = risk.volume24h.medium || '';
+            document.getElementById('volume-high').value = risk.volume24h.high || '';
+        }
+
+        // Holders Count
+        if (risk.holdersCount) {
+            document.getElementById('holders-low').value = risk.holdersCount.low || '';
+            document.getElementById('holders-medium').value = risk.holdersCount.medium || '';
+            document.getElementById('holders-high').value = risk.holdersCount.high || '';
+        }
+
+        // AMLBot Score
+        if (risk.amlbotScore) {
+            document.getElementById('amlbot-low').value = risk.amlbotScore.low || '';
+            document.getElementById('amlbot-medium').value = risk.amlbotScore.medium || '';
+            document.getElementById('amlbot-high').value = risk.amlbotScore.high || '';
+        }
+
+        // Top 3 Clusters
+        if (risk.top3ClustersPercentage) {
+            document.getElementById('clusters-low').value = risk.top3ClustersPercentage.low || '';
+            document.getElementById('clusters-medium').value = risk.top3ClustersPercentage.medium || '';
+            document.getElementById('clusters-high').value = risk.top3ClustersPercentage.high || '';
+            document.getElementById('clusters-critical').value = risk.top3ClustersPercentage.critical || '';
+        }
+
+        // Connected Wallets
+        document.getElementById('connected-wallets').value = risk.connectedWalletsThreshold || '';
+
+        // Token Age
+        if (risk.tokenAge) {
+            document.getElementById('age-low').value = risk.tokenAge.low || '';
+            document.getElementById('age-medium').value = risk.tokenAge.medium || '';
+            document.getElementById('age-high').value = risk.tokenAge.high || '';
+        }
+
+        // Market Cap
+        if (risk.marketCap) {
+            document.getElementById('marketcap-low').value = risk.marketCap.low || '';
+            document.getElementById('marketcap-medium').value = risk.marketCap.medium || '';
+            document.getElementById('marketcap-high').value = risk.marketCap.high || '';
+            document.getElementById('marketcap-critical').value = risk.marketCap.critical || '';
+        }
+
+        // Fully Diluted Valuation
+        if (risk.fullyDilutedValuation) {
+            document.getElementById('fdv-low').value = risk.fullyDilutedValuation.low || '';
+            document.getElementById('fdv-medium').value = risk.fullyDilutedValuation.medium || '';
+            document.getElementById('fdv-high').value = risk.fullyDilutedValuation.high || '';
+        }
+
+        // System Configuration
+        const server = this.config.server || {};
+        document.getElementById('server-port').value = server.port || '';
+        document.getElementById('log-level').value = this.config.logLevel || 'info';
+
+        // API Settings
+        const providers = this.config.providers || [];
+        const defaultTimeout = providers.length > 0 ? providers[0].timeout : 8000;
+        const defaultRetries = providers.length > 0 ? providers[0].retries : 3;
+        
+        document.getElementById('api-timeout').value = defaultTimeout;
+        document.getElementById('api-retries').value = defaultRetries;
+
+        // Populate providers
+        this.populateProviders(providers);
+    }
+
+    populateProviders(providers) {
+        const providerList = document.getElementById('provider-list');
+        providerList.innerHTML = '';
+
+        providers.forEach(provider => {
+            const providerItem = document.createElement('div');
+            providerItem.className = `provider-item ${provider.enabled ? 'enabled' : 'disabled'}`;
+            
+            providerItem.innerHTML = `
+                <div class="provider-toggle ${provider.enabled ? 'active' : ''}" data-provider="${provider.name}"></div>
+                <div class="provider-info">
+                    <div class="provider-name">${provider.name}</div>
+                    <div class="provider-status">${provider.enabled ? 'Enabled' : 'Disabled'}</div>
+                </div>
+            `;
+
+            // Add toggle event listener
+            const toggle = providerItem.querySelector('.provider-toggle');
+            toggle.addEventListener('click', () => this.toggleProvider(provider.name, !provider.enabled));
+
+            providerList.appendChild(providerItem);
+        });
+    }
+
+    async toggleProvider(providerName, enabled) {
+        try {
+            const response = await fetch('/admin/provider', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: providerName,
+                    enabled: enabled
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Update UI
+            const toggle = document.querySelector(`[data-provider="${providerName}"]`);
+            const providerItem = toggle.closest('.provider-item');
+            
+            if (enabled) {
+                toggle.classList.add('active');
+                providerItem.classList.remove('disabled');
+                providerItem.classList.add('enabled');
+                providerItem.querySelector('.provider-status').textContent = 'Enabled';
+            } else {
+                toggle.classList.remove('active');
+                providerItem.classList.remove('enabled');
+                providerItem.classList.add('disabled');
+                providerItem.querySelector('.provider-status').textContent = 'Disabled';
+            }
+
+            this.showStatus(`Provider ${providerName} ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+        } catch (error) {
+            console.error('Error toggling provider:', error);
+            this.showStatus(`Error updating provider: ${error.message}`, 'error');
+        }
+    }
+
+    collectFormData() {
+        const formData = {
+            riskAssessment: {
+                volume24h: {
+                    low: parseInt(document.getElementById('volume-low').value) || 1000000,
+                    medium: parseInt(document.getElementById('volume-medium').value) || 100000,
+                    high: parseInt(document.getElementById('volume-high').value) || 100000
+                },
+                holdersCount: {
+                    low: parseInt(document.getElementById('holders-low').value) || 2000,
+                    medium: parseInt(document.getElementById('holders-medium').value) || 300,
+                    high: parseInt(document.getElementById('holders-high').value) || 300
+                },
+                amlbotScore: {
+                    low: parseInt(document.getElementById('amlbot-low').value) || 30,
+                    medium: parseInt(document.getElementById('amlbot-medium').value) || 70,
+                    high: parseInt(document.getElementById('amlbot-high').value) || 70
+                },
+                top3ClustersPercentage: {
+                    low: parseInt(document.getElementById('clusters-low').value) || 20,
+                    medium: parseInt(document.getElementById('clusters-medium').value) || 50,
+                    high: parseInt(document.getElementById('clusters-high').value) || 80,
+                    critical: parseInt(document.getElementById('clusters-critical').value) || 80
+                },
+                connectedWalletsThreshold: parseInt(document.getElementById('connected-wallets').value) || 50,
+                tokenAge: {
+                    low: parseInt(document.getElementById('age-low').value) || 30,
+                    medium: parseInt(document.getElementById('age-medium').value) || 7,
+                    high: parseInt(document.getElementById('age-high').value) || 7
+                },
+                marketCap: {
+                    low: parseInt(document.getElementById('marketcap-low').value) || 100000000,
+                    medium: parseInt(document.getElementById('marketcap-medium').value) || 10000000,
+                    high: parseInt(document.getElementById('marketcap-high').value) || 1000000,
+                    critical: parseInt(document.getElementById('marketcap-critical').value) || 1000000
+                },
+                fullyDilutedValuation: {
+                    low: parseInt(document.getElementById('fdv-low').value) || 3,
+                    medium: parseInt(document.getElementById('fdv-medium').value) || 10,
+                    high: parseInt(document.getElementById('fdv-high').value) || 10
+                }
+            },
+            server: {
+                port: parseInt(document.getElementById('server-port').value) || 3000,
+                host: this.config?.server?.host || 'localhost',
+                cors: this.config?.server?.cors || {
+                    origin: ["http://localhost:3000", "http://localhost:3001"],
+                    credentials: false
+                }
+            },
+            logLevel: document.getElementById('log-level').value || 'info',
+            database: this.config?.database || {},
+            blockchains: this.config?.blockchains || [],
+            providers: this.config?.providers || [],
+            processors: this.config?.processors || [],
+            features: this.config?.features || {},
+            limits: this.config?.limits || {}
+        };
+
+        return formData;
+    }
+
+    async saveConfiguration() {
+        try {
+            this.showStatus('Saving configuration...', 'info');
+            
+            const configData = this.collectFormData();
+            
+            const response = await fetch('/admin/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(configData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            this.showStatus('Configuration saved successfully! Server restart may be required.', 'success');
+            
+            // Update local config
+            this.config = configData;
+        } catch (error) {
+            console.error('Error saving config:', error);
+            this.showStatus(`Error saving configuration: ${error.message}`, 'error');
+        }
+    }
+
+    async resetToDefaults() {
+        if (!confirm('Are you sure you want to reset all settings to defaults? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            this.showStatus('Resetting to defaults...', 'info');
+            
+            const response = await fetch('/admin/config/reset', {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            await this.loadCurrentConfig();
+            this.showStatus('Configuration reset to defaults successfully!', 'success');
+        } catch (error) {
+            console.error('Error resetting config:', error);
+            this.showStatus(`Error resetting configuration: ${error.message}`, 'error');
+        }
+    }
+
+    showStatus(message, type) {
+        const statusElement = document.getElementById('status-message');
+        statusElement.textContent = message;
+        statusElement.className = `status-message ${type}`;
+        
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+    }
+}
+
+// Initialize admin settings when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new AdminSettings();
+}); 
