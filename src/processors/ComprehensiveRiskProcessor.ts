@@ -182,6 +182,13 @@ export class ComprehensiveRiskProcessor extends BaseResponseProcessor {
             });
           }
         }
+      } else {
+        // Log when DexScreener data is missing or has issues
+        if (collectedData.dexscreener) {
+          console.log(`DexScreener data status: ${collectedData.dexscreener.status}, has rawData: ${!!collectedData.dexscreener.rawData}`);
+        } else {
+          console.log('DexScreener data not found in collectedData');
+        }
       }
 
       // Analyze Bubblemap data

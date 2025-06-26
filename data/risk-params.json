@@ -1,0 +1,17 @@
+{
+  "thresholds": {
+    "low": 30,
+    "medium": 70
+  },
+  "weights": {
+    "amlbot": 0.4,
+    "coingecko": 0.3,
+    "dexscreener": 0.2,
+    "bubblemap": 0.1
+  },
+  "factors": {
+    "liquidity": 10000,
+    "volume": 5000,
+    "age": 30
+  }
+}

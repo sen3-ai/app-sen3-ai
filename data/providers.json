@@ -1,0 +1,26 @@
+[
+  {
+    "name": "amlbot",
+    "enabled": true,
+    "status": "unknown",
+    "lastCheck": null
+  },
+  {
+    "name": "coingecko",
+    "enabled": true,
+    "status": "unknown",
+    "lastCheck": null
+  },
+  {
+    "name": "dexscreener",
+    "enabled": true,
+    "status": "unknown",
+    "lastCheck": null
+  },
+  {
+    "name": "bubblemap",
+    "enabled": true,
+    "status": "unknown",
+    "lastCheck": null
+  }
+]

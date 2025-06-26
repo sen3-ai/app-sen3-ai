@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sen3AI Admin Panel</title>
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Sen3AI Admin Panel</h1>
+            <nav class="admin-nav">
+                <button class="nav-btn active" data-tab="risk-params">Risk Parameters</button>
+                <button class="nav-btn" data-tab="config">Configuration</button>
+                <button class="nav-btn" data-tab="providers">Providers</button>
+                <button class="nav-btn" data-tab="logs">System Logs</button>
+            </nav>
+        </header>
+
+        <main class="admin-content">
+            <!-- Risk Parameters Tab -->
+            <div class="tab-content active" id="risk-params">
+                <div class="section-header">
+                    <h2>Risk Calculation Parameters</h2>
+                    <p>Adjust how risk scores are calculated and interpreted</p>
+                </div>
+                
+                <div class="params-grid">
+                    <div class="param-group">
+                        <h3>Score Thresholds</h3>
+                        <div class="param-item">
+                            <label for="low-risk-threshold">Low Risk Threshold:</label>
+                            <input type="number" id="low-risk-threshold" min="0" max="100" value="30">
+                            <span class="help-text">Scores below this are considered low risk</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="medium-risk-threshold">Medium Risk Threshold:</label>
+                            <input type="number" id="medium-risk-threshold" min="0" max="100" value="70">
+                            <span class="help-text">Scores between low and this are medium risk</span>
+                        </div>
+                    </div>
+
+                    <div class="param-group">
+                        <h3>Provider Weights</h3>
+                        <div class="param-item">
+                            <label for="amlbot-weight">AMLBot Weight:</label>
+                            <input type="number" id="amlbot-weight" min="0" max="1" step="0.1" value="0.4">
+                            <span class="help-text">Weight for AMLBot risk assessment (0-1)</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="coingecko-weight">Coingecko Weight:</label>
+                            <input type="number" id="coingecko-weight" min="0" max="1" step="0.1" value="0.3">
+                            <span class="help-text">Weight for Coingecko data (0-1)</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="dexscreener-weight">DexScreener Weight:</label>
+                            <input type="number" id="dexscreener-weight" min="0" max="1" step="0.1" value="0.2">
+                            <span class="help-text">Weight for DexScreener data (0-1)</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="bubblemap-weight">Bubblemap Weight:</label>
+                            <input type="number" id="bubblemap-weight" min="0" max="1" step="0.1" value="0.1">
+                            <span class="help-text">Weight for Bubblemap data (0-1)</span>
+                        </div>
+                    </div>
+
+                    <div class="param-group">
+                        <h3>Risk Factors</h3>
+                        <div class="param-item">
+                            <label for="liquidity-threshold">Minimum Liquidity (USD):</label>
+                            <input type="number" id="liquidity-threshold" min="0" value="10000">
+                            <span class="help-text">Minimum liquidity to consider token safe</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="volume-threshold">Minimum 24h Volume (USD):</label>
+                            <input type="number" id="volume-threshold" min="0" value="5000">
+                            <span class="help-text">Minimum volume to consider token active</span>
+                        </div>
+                        <div class="param-item">
+                            <label for="age-threshold">Minimum Age (days):</label>
+                            <input type="number" id="age-threshold" min="0" value="30">
+                            <span class="help-text">Minimum age to consider token established</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="saveRiskParams()">Save Parameters</button>
+                    <button class="btn btn-secondary" onclick="resetRiskParams()">Reset to Defaults</button>
+                    <button class="btn btn-test" onclick="testRiskCalculation()">Test Calculation</button>
+                </div>
+            </div>
+
+            <!-- Configuration Tab -->
+            <div class="tab-content" id="config">
+                <div class="section-header">
+                    <h2>System Configuration</h2>
+                    <p>Manage system-wide configuration settings</p>
+                </div>
+                
+                <div class="config-section">
+                    <h3>Server Settings</h3>
+                    <div class="config-item">
+                        <label for="server-port">Server Port:</label>
+                        <input type="number" id="server-port" min="1" max="65535" value="3000">
+                    </div>
+                    <div class="config-item">
+                        <label for="log-level">Log Level:</label>
+                        <select id="log-level">
+                            <option value="error">Error</option>
+                            <option value="warn">Warning</option>
+                            <option value="info" selected>Info</option>
+                            <option value="debug">Debug</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>API Settings</h3>
+                    <div class="config-item">
+                        <label for="timeout-ms">Request Timeout (ms):</label>
+                        <input type="number" id="timeout-ms" min="1000" max="30000" value="8000">
+                    </div>
+                    <div class="config-item">
+                        <label for="retry-attempts">Retry Attempts:</label>
+                        <input type="number" id="retry-attempts" min="1" max="5" value="3">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+                    <button class="btn btn-secondary" onclick="resetConfig()">Reset to Defaults</button>
+                    <button class="btn btn-restart" onclick="restartServer()">Restart Server</button>
+                </div>
+            </div>
+
+            <!-- Providers Tab -->
+            <div class="tab-content" id="providers">
+                <div class="section-header">
+                    <h2>Data Providers</h2>
+                    <p>Manage and configure data providers</p>
+                </div>
+                
+                <div class="providers-grid" id="providers-grid">
+                    <!-- Providers will be loaded dynamically -->
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="saveProviders()">Save Provider Settings</button>
+                    <button class="btn btn-test" onclick="testProviders()">Test All Providers</button>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div class="tab-content" id="logs">
+                <div class="section-header">
+                    <h2>System Logs</h2>
+                    <p>View and manage system logs</p>
+                </div>
+                
+                <div class="logs-controls">
+                    <button class="btn btn-secondary" onclick="refreshLogs()">Refresh Logs</button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+                    <button class="btn btn-secondary" onclick="downloadLogs()">Download Logs</button>
+                </div>
+                
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <span>Recent Logs</span>
+                        <label>
+                            <input type="checkbox" id="auto-refresh" checked> Auto-refresh
+                        </label>
+                    </div>
+                    <div class="logs-content" id="logs-content">
+                        <!-- Logs will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="notification" id="notification"></div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html> 

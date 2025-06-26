@@ -24,6 +24,8 @@ export class DataCollector {
     const results: CollectedData = {};
     const errors: string[] = [];
 
+    console.log(`DataCollector.collectData called with source: "${source}", chain: "${chain}"`);
+
     // Execute all providers concurrently
     const providerPromises = this.providers.map(async (provider) => {
       try {
@@ -31,8 +33,10 @@ export class DataCollector {
         
         // Pass chain parameter to all providers that support it
         if (chain) {
+          console.log(`Calling provider ${provider.getName()} with source: "${source}", chain: "${chain}"`);
           data = await (provider as any).fetch(source, chain);
         } else {
+          console.log(`Calling provider ${provider.getName()} with source: "${source}" (no chain)`);
           data = await provider.fetch(source);
         }
           

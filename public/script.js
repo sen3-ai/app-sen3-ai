@@ -57,7 +57,7 @@ function handleSearchKeydown(e) {
     const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
     const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
     
-    switch(e.key) {
+    switch (e.key) {
         case 'ArrowDown':
             e.preventDefault();
             const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
@@ -70,9 +70,16 @@ function handleSearchKeydown(e) {
             break;
         case 'Enter':
             e.preventDefault();
-            if (currentIndex >= 0 && items[currentIndex]) {
+            if (currentIndex >= 0 && currentIndex < items.length) {
+                // Select from autocomplete
                 const match = currentSearchResults[currentIndex];
                 selectContract(match);
+            } else {
+                // Direct address entry - search for the entered address
+                const address = searchInput.value.trim();
+                if (address.length >= 10) {
+                    searchForAddress(address);
+                }
             }
             break;
         case 'Escape':
@@ -89,15 +96,22 @@ async function performSearch(query) {
         const response = await fetch(url);
         const data = await response.json();
         
-        if (data.result && data.data && data.data.matches) {
+        if (response.ok && data.result && data.data && data.data.matches) {
             currentSearchResults = data.data.matches;
             showAutocomplete(data.data.matches);
+        } else if (response.status === 404) {
+            // No information found for this address
+            hideAutocomplete();
+            // Show error message to user
+            showError('Cannot find information for this contract address');
         } else {
             hideAutocomplete();
+            showError('Search failed. Please try again.');
         }
     } catch (error) {
         console.error('Search error:', error);
         hideAutocomplete();
+        showError('Search failed. Please try again.');
     }
 }
 
@@ -422,4 +436,33 @@ function groupExplanationsByType(explanations) {
     });
     
     return result;
+}
+
+// Search for a specific address directly
+async function searchForAddress(address) {
+    hideAutocomplete();
+    showLoading();
+    
+    try {
+        // First try to find the address across all chains
+        const searchUrl = debugMode ? `/search/${address}?debug=true` : `/search/${address}`;
+        const searchResponse = await fetch(searchUrl);
+        const searchData = await searchResponse.json();
+        
+        if (searchResponse.status === 404) {
+            showError('Cannot find information for this contract address');
+            return;
+        }
+        
+        if (searchData.result && searchData.data && searchData.data.matches && searchData.data.matches.length > 0) {
+            // Use the first match found
+            const match = searchData.data.matches[0];
+            selectContract(match);
+        } else {
+            showError('Cannot find information for this contract address');
+        }
+    } catch (error) {
+        console.error('Address search error:', error);
+        showError('Failed to search for address');
+    }
 } 

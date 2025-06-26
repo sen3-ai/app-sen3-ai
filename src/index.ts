@@ -12,6 +12,7 @@ import { CoingeckoProvider } from './providers/CoingeckoProvider';
 import { BubblemapProvider } from './providers/BubblemapProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 import { RiskExplanation } from './processors/ResponseProcessor';
+import { ConfigManager } from './config/ConfigManager';
 
 // Load configuration
 const config = Config.getInstance();
@@ -150,6 +151,7 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     }
 
     console.log(`Processing risk assessment for ${address} on ${chain}...`);
+    console.log(`Request params - address: "${address}", chain: "${chain}"`);
 
     // Step 1: Fetch basic contract information from DexScreener
     console.log(`Fetching basic contract information from DexScreener...`);
@@ -167,7 +169,7 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
       found: false
     };
 
-    if (contractInfo && contractInfo.provider === 'dexscreener' && contractInfo.rawData && contractInfo.rawData.length > 0) {
+    if (contractInfo && contractInfo.status === 'success' && contractInfo.rawData && contractInfo.rawData.length > 0) {
       // Get the best pair (highest liquidity)
       const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
         const bestLiquidity = best.liquidity?.usd || 0;
@@ -189,6 +191,9 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
       console.log(`Found contract: ${basicInfo.name} (${basicInfo.symbol}) on ${basicInfo.dexId}`);
     } else {
       console.log(`No contract information found on DexScreener for ${chain}`);
+      if (contractInfo) {
+        console.log(`DexScreener response status: ${contractInfo.status}, has rawData: ${!!contractInfo.rawData}, rawData length: ${contractInfo.rawData?.length || 0}`);
+      }
     }
 
     // Step 2: Determine address type
@@ -379,7 +384,7 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
         const result = await dexscreenerProvider.fetch(address, chain);
         
         // Check if we got real data (not mock data)
-        if (result && result.provider === 'dexscreener' && result.rawData && result.rawData.length > 0) {
+        if (result && result.status === 'success' && result.rawData && result.rawData.length > 0) {
           debugData.chainResults[chain].status = 'success';
           debugData.chainResults[chain].pairsFound = result.rawData.length;
           
@@ -389,13 +394,27 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
 
           // Process each pair found for this chain
           result.rawData.forEach((pair: any) => {
-            // Only include if the base token matches our search address
+            // Check if the base token matches our search address
             if (pair.baseToken && pair.baseToken.address.toLowerCase() === address.toLowerCase()) {
               matches.push({
                 blockchain: chain,
                 name: pair.baseToken.name || 'Unknown',
                 owner: pair.baseToken.address,
                 symbol: pair.baseToken.symbol,
+                priceUsd: parseFloat(pair.priceUsd || '0'),
+                liquidityUsd: pair.liquidity?.usd || 0,
+                volume24h: pair.volume?.h24 || 0,
+                dexId: pair.dexId,
+                pairAddress: pair.pairAddress
+              });
+            }
+            // Also check if the quote token matches our search address
+            else if (pair.quoteToken && pair.quoteToken.address.toLowerCase() === address.toLowerCase()) {
+              matches.push({
+                blockchain: chain,
+                name: pair.quoteToken.name || 'Unknown',
+                owner: pair.quoteToken.address,
+                symbol: pair.quoteToken.symbol,
                 priceUsd: parseFloat(pair.priceUsd || '0'),
                 liquidityUsd: pair.liquidity?.usd || 0,
                 volume24h: pair.volume?.h24 || 0,
@@ -423,6 +442,22 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       index === self.findIndex(m => m.blockchain === match.blockchain && m.owner.toLowerCase() === match.owner.toLowerCase())
     );
 
+    // Check if we found any matches
+    if (uniqueMatches.length === 0) {
+      res.status(404).json({
+        result: false,
+        reason: 'Cannot find information for this contract address',
+        data: {
+          address: address,
+          matches: [],
+          totalMatches: 0,
+          searchedChains: supportedChains,
+          timestamp: new Date().toISOString()
+        }
+      });
+      return;
+    }
+
     const response: any = {
       result: true,
       data: {
@@ -445,6 +480,239 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
     res.status(500).json({
       result: false,
       reason: error instanceof Error ? error.message : 'Internal server error occurred while searching'
+    });
+  }
+});
+
+// Admin routes
+const configManager = ConfigManager.getInstance();
+
+// Admin page route
+app.get('/admin', (req: Request, res: Response): void => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// Risk Parameters endpoints
+app.get('/admin/risk-params', (req: Request, res: Response): void => {
+  try {
+    const params = configManager.getRiskParameters();
+    res.json(params);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to load risk parameters',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/risk-params', (req: Request, res: Response): void => {
+  try {
+    const params = req.body;
+    configManager.setRiskParameters(params);
+    configManager.addLog('info', 'Risk parameters updated via admin panel');
+    res.json({ success: true, message: 'Risk parameters saved successfully' });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to save risk parameters',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Configuration endpoints
+app.get('/admin/config', (req: Request, res: Response): void => {
+  try {
+    const config = configManager.getAdminConfig();
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to load configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/config', (req: Request, res: Response): void => {
+  try {
+    const config = req.body;
+    configManager.setAdminConfig(config);
+    configManager.addLog('info', 'Configuration updated via admin panel');
+    res.json({ success: true, message: 'Configuration saved successfully' });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to save configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Providers endpoints
+app.get('/admin/providers', (req: Request, res: Response): void => {
+  try {
+    const providers = configManager.getProviders();
+    res.json(providers);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to load providers',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.patch('/admin/providers', (req: Request, res: Response): void => {
+  try {
+    const { name, enabled } = req.body;
+    configManager.updateProvider(name, enabled);
+    configManager.addLog('info', `Provider ${name} ${enabled ? 'enabled' : 'disabled'} via admin panel`);
+    res.json({ success: true, message: `Provider ${name} ${enabled ? 'enabled' : 'disabled'}` });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to update provider',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Logs endpoints
+app.get('/admin/logs', (req: Request, res: Response): void => {
+  try {
+    const logs = configManager.getLogs();
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to load logs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.delete('/admin/logs', (req: Request, res: Response): void => {
+  try {
+    configManager.clearLogs();
+    configManager.addLog('info', 'Logs cleared via admin panel');
+    res.json({ success: true, message: 'Logs cleared successfully' });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to clear logs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.get('/admin/logs/download', (req: Request, res: Response): void => {
+  try {
+    const logsText = configManager.getLogsAsText();
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename=logs-${new Date().toISOString().split('T')[0]}.txt`);
+    res.send(logsText);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to download logs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Test endpoints
+app.post('/admin/test-risk-calculation', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { address, chain } = req.body;
+    
+    if (!address || !chain) {
+      res.status(400).json({
+        error: 'Missing address or chain parameter'
+      });
+      return;
+    }
+
+    // Use the existing risk assessment logic
+    const collectedData = await dataCollector.collectData(address, chain);
+    const addressType = getAddressType(address);
+    const processedData = await processorManager.processData(address, addressType, collectedData);
+    
+    res.json({
+      success: true,
+      riskScore: processedData.finalScore,
+      message: 'Test calculation completed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Test calculation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/test-providers', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const providers = configManager.getProviders();
+    const results: { successful: number; failed: number; details: any[] } = { successful: 0, failed: 0, details: [] };
+
+    for (const provider of providers) {
+      try {
+        // Test each provider with a sample address
+        const testAddress = '0xcda4e840411c00a614ad9205caec807c7458a0e3';
+        const testChain = 'ethereum';
+        
+        let providerInstance;
+        switch (provider.name) {
+          case 'amlbot':
+            providerInstance = new AMLBotProvider();
+            break;
+          case 'coingecko':
+            providerInstance = new CoingeckoProvider();
+            break;
+          case 'dexscreener':
+            providerInstance = new DexScreenerProvider();
+            break;
+          case 'bubblemap':
+            providerInstance = new BubblemapProvider();
+            break;
+          default:
+            continue;
+        }
+
+        const result = await providerInstance.fetch(testAddress);
+        const status = result && result.rawData ? 'working' : 'no_data';
+        
+        configManager.updateProviderStatus(provider.name, status);
+        results.successful++;
+        results.details.push({ provider: provider.name, status: 'success' });
+      } catch (error) {
+        configManager.updateProviderStatus(provider.name, 'error');
+        results.failed++;
+        results.details.push({ 
+          provider: provider.name, 
+          status: 'error', 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    }
+
+    configManager.addLog('info', `Provider test completed: ${results.successful} successful, ${results.failed} failed`);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Provider test failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.post('/admin/restart', (req: Request, res: Response): void => {
+  try {
+    configManager.addLog('info', 'Server restart requested via admin panel');
+    res.json({ success: true, message: 'Server restart initiated' });
+    
+    // Note: In a real implementation, you might want to use PM2 or similar process manager
+    // For now, we'll just log the restart request
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to restart server',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
