@@ -11,130 +11,122 @@ export class ComprehensiveRiskProcessor extends BaseResponseProcessor {
       let score = 50; // Base score
       const explanations: string[] = [];
 
-      // Analyze blockchain data
-      if (collectedData.blockchain) {
-        const blockchainData = collectedData.blockchain;
+      // Analyze AMLBot data
+      if (collectedData.amlbot && collectedData.amlbot.status === 'success' && collectedData.amlbot.rawData) {
+        const amlData = collectedData.amlbot.rawData;
         
-        if (blockchainData.transactionCount > 1000) {
-          score -= 10;
-          explanations.push('High transaction volume indicates active and established address');
-        } else if (blockchainData.transactionCount < 10) {
-          score += 20;
-          explanations.push('Low transaction volume suggests new or inactive address');
+        if (amlData.riskscore !== undefined) {
+          const riskScore = Math.round(amlData.riskscore * 100);
+          score = riskScore; // Use AMLBot's risk score directly
+          explanations.push(`AMLBot risk score: ${riskScore}%`);
         }
 
-        if (blockchainData.totalVolume > 1000000) {
-          score -= 5;
-          explanations.push('High total volume indicates significant financial activity');
-        } else if (blockchainData.totalVolume < 10000) {
-          score += 10;
-          explanations.push('Low total volume suggests limited financial activity');
+        if (amlData.addressDetailsData) {
+          const txCount = amlData.addressDetailsData.n_txs || 0;
+          if (txCount > 1000) {
+            explanations.push('High transaction volume indicates active address');
+          } else if (txCount < 10) {
+            explanations.push('Low transaction volume suggests new address');
+          }
         }
 
-        const daysSinceFirstSeen = this.calculateDaysSince(blockchainData.firstSeen);
-        if (daysSinceFirstSeen > 365) {
-          score -= 5;
-          explanations.push('Address has been active for over a year');
-        } else if (daysSinceFirstSeen < 30) {
-          score += 15;
-          explanations.push('Address is relatively new (less than 30 days)');
+        if (amlData.signals) {
+          const signals = amlData.signals;
+          if (signals.scam > 0.1) {
+            score += 20;
+            explanations.push('Scam-related activity detected');
+          }
+          if (signals.sanctions > 0.1) {
+            score += 30;
+            explanations.push('Sanctions-related activity detected');
+          }
+          if (signals.mixer > 0.1) {
+            score += 15;
+            explanations.push('Mixer/tumbler usage detected');
+          }
         }
       }
 
-      // Analyze reputation data
-      if (collectedData.reputation) {
-        const reputationData = collectedData.reputation;
+      // Analyze Coingecko data
+      if (collectedData.coingecko && collectedData.coingecko.status === 'success' && collectedData.coingecko.rawData) {
+        const cgData = collectedData.coingecko.rawData;
         
-        if (reputationData.isBlacklisted) {
-          score = 100;
-          explanations.push('Address is blacklisted - immediate high risk');
-          return { score, explanations };
+        if (cgData.market_data) {
+          const marketCap = cgData.market_data.market_cap?.usd || 0;
+          const volume = cgData.market_data.total_volume?.usd || 0;
+          const priceChange = cgData.market_data.price_change_percentage_24h || 0;
+
+          if (marketCap > 1000000000) {
+            score -= 10;
+            explanations.push('Large market cap indicates established token');
+          } else if (marketCap < 1000000) {
+            score += 10;
+            explanations.push('Small market cap suggests higher risk');
+          }
+
+          if (volume > 10000000) {
+            score -= 5;
+            explanations.push('High trading volume indicates active market');
+          } else if (volume < 100000) {
+            score += 10;
+            explanations.push('Low trading volume suggests limited interest');
+          }
+
+          if (Math.abs(priceChange) > 50) {
+            score += 15;
+            explanations.push('High price volatility indicates risk');
+          }
         }
 
-        if (reputationData.trustScore > 80) {
-          score -= 15;
-          explanations.push('High trust score from reputation provider');
-        } else if (reputationData.trustScore < 20) {
-          score += 25;
-          explanations.push('Low trust score from reputation provider');
-        }
-
-        if (reputationData.riskLevel === 'critical') {
-          score += 30;
-          explanations.push('Critical risk level identified by reputation provider');
-        } else if (reputationData.riskLevel === 'high') {
-          score += 20;
-          explanations.push('High risk level identified by reputation provider');
-        } else if (reputationData.riskLevel === 'low') {
-          score -= 10;
-          explanations.push('Low risk level identified by reputation provider');
-        }
-
-        if (reputationData.reports > 10) {
-          score += 15;
-          explanations.push(`Address has ${reputationData.reports} negative reports`);
-        }
-
-        const feedbackRatio = reputationData.positiveFeedback / (reputationData.positiveFeedback + reputationData.negativeFeedback);
-        if (feedbackRatio < 0.3 && reputationData.positiveFeedback + reputationData.negativeFeedback > 10) {
-          score += 20;
-          explanations.push('Poor community feedback ratio');
+        if (cgData.community_data) {
+          const twitterFollowers = cgData.community_data.twitter_followers || 0;
+          if (twitterFollowers > 100000) {
+            score -= 5;
+            explanations.push('Large social media following indicates established project');
+          }
         }
       }
 
-      // Analyze social data
-      if (collectedData.social) {
-        const socialData = collectedData.social;
+      // Analyze DexScreener data
+      if (collectedData.dexscreener && collectedData.dexscreener.status === 'success' && collectedData.dexscreener.rawData) {
+        const dexData = collectedData.dexscreener.rawData;
         
-        if (socialData.mentions > 100) {
-          score -= 5;
-          explanations.push('Significant social media presence indicates established address');
-        } else if (socialData.mentions === 0) {
-          score += 5;
-          explanations.push('No social media presence detected');
-        }
+        if (dexData.length > 0) {
+          // Get the most liquid pair
+          const bestPair = dexData.reduce((best: any, current: any) => {
+            return (current.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? current : best;
+          });
 
-        if (socialData.sentiment === 'negative' && socialData.mentions > 10) {
-          score += 15;
-          explanations.push('Negative social media sentiment detected');
-        } else if (socialData.sentiment === 'positive' && socialData.mentions > 10) {
-          score -= 5;
-          explanations.push('Positive social media sentiment detected');
-        }
+          const liquidityUsd = bestPair.liquidity?.usd || 0;
+          const volume24h = bestPair.volume?.h24 || 0;
+          const priceChange24h = bestPair.priceChange?.h24 || 0;
+          const txns24h = (bestPair.txns?.h24?.buys || 0) + (bestPair.txns?.h24?.sells || 0);
 
-        if (socialData.influencers > 5) {
-          score -= 3;
-          explanations.push('Address mentioned by multiple influencers');
-        }
-      }
+          if (liquidityUsd < 10000) {
+            score += 20;
+            explanations.push('Very low liquidity indicates high risk');
+          } else if (liquidityUsd > 1000000) {
+            score -= 10;
+            explanations.push('High liquidity suggests good market depth');
+          }
 
-      // Analyze on-chain data
-      if (collectedData.onchain) {
-        const onchainData = collectedData.onchain;
-        
-        if (onchainData.hasContractInteraction) {
-          score += 10;
-          explanations.push('Address has interacted with smart contracts');
-        }
+          if (volume24h < 1000) {
+            score += 15;
+            explanations.push('Very low trading volume suggests limited interest');
+          } else if (volume24h > 1000000) {
+            score -= 5;
+            explanations.push('High trading volume indicates active market');
+          }
 
-        if (onchainData.gasUsed > 1000000) {
-          score += 5;
-          explanations.push('High gas usage indicates complex transactions');
-        }
+          if (txns24h < 10) {
+            score += 10;
+            explanations.push('Very few transactions suggests low activity');
+          }
 
-        if (onchainData.contractCount > 10) {
-          score += 10;
-          explanations.push('High number of contract interactions');
-        }
-
-        if (onchainData.suspiciousPatterns.length > 0) {
-          score += 15;
-          explanations.push(`Suspicious patterns detected: ${onchainData.suspiciousPatterns.join(', ')}`);
-        }
-
-        if (onchainData.dappInteractions.length > 5) {
-          score -= 3;
-          explanations.push('Active DeFi user with multiple dApp interactions');
+          if (Math.abs(priceChange24h) > 50) {
+            score += 15;
+            explanations.push('Extreme price volatility indicates high risk');
+          }
         }
       }
 
@@ -159,12 +151,5 @@ export class ComprehensiveRiskProcessor extends BaseResponseProcessor {
       console.warn(`ComprehensiveRiskProcessor failed to process data:`, error);
       throw error;
     }
-  }
-
-  private calculateDaysSince(dateString: string): number {
-    const firstSeen = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - firstSeen.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 } 

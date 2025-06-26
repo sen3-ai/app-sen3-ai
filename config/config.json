@@ -15,19 +15,21 @@
     "password": ""
   },
   "blockchains": [
-    "ethereum",
-    "polygon",
-    "bsc",
-    "arbitrum",
-    "optimism",
-    "solana"
+    { "name": "ethereum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+    { "name": "polygon", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+    { "name": "bsc", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+    { "name": "arbitrum", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+    { "name": "optimism", "regex": "^0x[0-9a-fA-F]{40}$", "enabled": true },
+    { "name": "solana", "regex": "^[1-9A-HJ-NP-Za-km-z]{32,44}$", "enabled": true }
   ],
   "providers": [
-    "amlbot",
-    "coingecko",
-    "dexscreener"
+    { "name": "amlbot", "enabled": true, "priority": 1, "timeout": 8000, "retries": 3 },
+    { "name": "coingecko", "enabled": true, "priority": 2, "timeout": 10000, "retries": 2 },
+    { "name": "dexscreener", "enabled": true, "priority": 3, "timeout": 5000, "retries": 2 }
   ],
-  "processors": ["comprehensive"],
+  "processors": [
+    { "name": "comprehensive", "enabled": true }
+  ],
   "logLevel": "info",
   "features": {
     "caching": true,
