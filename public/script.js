@@ -267,70 +267,118 @@ function showRiskResults(riskData, contractInfo) {
     const explanations = riskData.explanations || [];
     const contractDetails = riskData.contractInfo || {};
     
-    resultsSection.innerHTML = `
-        <div class="contract-header">
-            <h2>${name} ${symbol ? `(${symbol})` : ''}</h2>
-            <div class="contract-meta">
-                <span class="address">${address}</span>
-                <span class="blockchain-badge">${blockchain}</span>
-            </div>
-        </div>
-        
-        <div class="risk-summary">
-            <div class="risk-score ${getRiskClass(riskScore)}">
-                <span class="score">${riskScore}</span>
-                <span class="label">Risk Score</span>
-            </div>
-            
-            ${contractDetails.priceUsd ? `
-                <div class="contract-details">
-                    <div class="detail-item">
-                        <span class="label">Price:</span>
-                        <span class="value">$${parseFloat(contractDetails.priceUsd).toFixed(6)}</span>
-                    </div>
-                    ${contractDetails.liquidityUsd ? `
-                        <div class="detail-item">
-                            <span class="label">Liquidity:</span>
-                            <span class="value">$${formatNumber(contractDetails.liquidityUsd)}</span>
-                        </div>
-                    ` : ''}
-                    ${contractDetails.volume24h ? `
-                        <div class="detail-item">
-                            <span class="label">24h Volume:</span>
-                            <span class="value">$${formatNumber(contractDetails.volume24h)}</span>
-                        </div>
-                    ` : ''}
-                </div>
-            ` : ''}
-        </div>
-        
-        ${description ? `
-            <!-- <div class="risk-description">
-                <h3>Risk Assessment</h3>
-                <p>${description}</p>
-            </div> -->
-        ` : ''}
-        
-        ${explanations.length > 0 ? `
-            <div class="risk-explanations">
-                <h3>Risk Factors</h3>
-                ${groupExplanationsByType(explanations)}
-            </div>
-        ` : ''}
-        
-        ${debugMode && riskData.providerData ? `
-            <div class="debug-data">
-                <h3>Debug Data</h3>
-                <pre>${JSON.stringify(riskData.providerData, null, 2)}</pre>
-            </div>
-        ` : ''}
-    `;
+    // Create Telegram-like message
+    const messageHTML = createTelegramMessage({
+        name,
+        symbol,
+        address,
+        blockchain,
+        riskScore,
+        contractDetails,
+        explanations
+    });
     
+    resultsSection.innerHTML = messageHTML;
     resultsSection.style.display = 'block';
 }
 
-// Get CSS class for risk score
-function getRiskClass(score) {
+// Create Telegram-like message format
+function createTelegramMessage(data) {
+    const { name, symbol, address, blockchain, riskScore, contractDetails, explanations } = data;
+    
+    // Format contract address for display
+    const shortAddress = address.length > 20 ? 
+        address.substring(0, 20) + '...' : address;
+    
+    // Get risk level and color
+    const riskLevel = getRiskLevel(riskScore);
+    const riskColor = getRiskColor(riskScore);
+    
+    // Format metrics
+    const price = contractDetails.priceUsd ? 
+        `$${parseFloat(contractDetails.priceUsd).toFixed(6)}` : 'N/A';
+    const liquidity = contractDetails.liquidityUsd ? 
+        `$${formatNumber(contractDetails.liquidityUsd)}` : 'N/A';
+    const volume = contractDetails.volume24h ? 
+        `$${formatNumber(contractDetails.volume24h)}` : 'N/A';
+    
+    // Group explanations by type
+    const increaseFactors = explanations.filter(exp => exp.type === 'increase');
+    const decreaseFactors = explanations.filter(exp => exp.type === 'decrease');
+    const neutralFactors = explanations.filter(exp => exp.type === 'neutral');
+    
+    return `
+        <div class="risk-message">
+            <div class="risk-message-header">
+                <div class="risk-message-title">
+                    🚨 Token Risk Update: ${name} ${symbol ? `(${symbol})` : ''}
+                </div>
+                <div class="risk-message-subtitle">
+                    🔗 ${blockchain.toUpperCase()} | 🧾 Contract: ${shortAddress}
+                </div>
+            </div>
+            
+            <div class="risk-score-display ${riskLevel}">
+                📊 Risk Score: ${riskScore}
+            </div>
+            
+            <div class="risk-metrics">
+                <div class="metric-item">
+                    <div class="metric-label">💵 Price</div>
+                    <div class="metric-value">${price}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">💧 Liquidity</div>
+                    <div class="metric-value">${liquidity}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">📈 24h Volume</div>
+                    <div class="metric-value">${volume}</div>
+                </div>
+            </div>
+            
+            ${(increaseFactors.length > 0 || decreaseFactors.length > 0) ? `
+                <div class="risk-factors">
+                    <div class="risk-factors-title">
+                        ⚠️ Risk Factors
+                        ${increaseFactors.length > 0 ? `<span class="risk-factor-increase">(⬆️ Increase)</span>` : ''}
+                        ${decreaseFactors.length > 0 ? `<span class="risk-factor-decrease">(⬇️ Decrease)</span>` : ''}
+                    </div>
+                    <ul class="risk-factors-list">
+                        ${increaseFactors.map(factor => `
+                            <li class="risk-factor-item">
+                                <span class="risk-factor-icon">🔺</span>
+                                <span class="risk-factor-text risk-factor-increase">${factor.text}</span>
+                            </li>
+                        `).join('')}
+                        ${decreaseFactors.map(factor => `
+                            <li class="risk-factor-item">
+                                <span class="risk-factor-icon">🔻</span>
+                                <span class="risk-factor-text risk-factor-decrease">${factor.text}</span>
+                            </li>
+                        `).join('')}
+                        ${neutralFactors.map(factor => `
+                            <li class="risk-factor-item">
+                                <span class="risk-factor-icon">⚪</span>
+                                <span class="risk-factor-text risk-factor-neutral">${factor.text}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Get risk level (low, medium, high)
+function getRiskLevel(score) {
+    if (score <= 30) return 'low';
+    if (score <= 70) return 'medium';
+    return 'high';
+}
+
+// Get risk color class
+function getRiskColor(score) {
     if (score <= 30) return 'low-risk';
     if (score <= 70) return 'medium-risk';
     return 'high-risk';
@@ -366,43 +414,46 @@ function showContractInfo(contractInfo) {
         marketCap = `$${formatNumber(contractInfo.marketCap)}`;
     }
     
-    resultsSection.innerHTML = `
-        <div class="contract-header">
-            <h2>${name} ${symbol ? `(${symbol})` : ''}</h2>
-            <div class="contract-meta">
-                <span class="address">${address}</span>
-                <span class="blockchain-badge">${blockchain}</span>
+    // Create initial contract info message
+    const messageHTML = `
+        <div class="risk-message">
+            <div class="risk-message-header">
+                <div class="risk-message-title">
+                    🔍 Found Contract: ${name} ${symbol ? `(${symbol})` : ''}
+                </div>
+                <div class="risk-message-subtitle">
+                    🔗 ${blockchain.toUpperCase()} | 🧾 Contract: ${address.length > 20 ? address.substring(0, 20) + '...' : address}
+                </div>
             </div>
-        </div>
-        
-        <div class="contract-summary">
-            <div class="contract-details">
+            
+            <div class="risk-metrics">
                 ${price ? `
-                    <div class="detail-item">
-                        <span class="label">Price:</span>
-                        <span class="value">${price}</span>
+                    <div class="metric-item">
+                        <div class="metric-label">💵 Price</div>
+                        <div class="metric-value">${price}</div>
                     </div>
                 ` : ''}
                 ${marketCap ? `
-                    <div class="detail-item">
-                        <span class="label">Market Cap:</span>
-                        <span class="value">${marketCap}</span>
+                    <div class="metric-item">
+                        <div class="metric-label">💰 Market Cap</div>
+                        <div class="metric-value">${marketCap}</div>
                     </div>
                 ` : ''}
                 ${liquidity ? `
-                    <div class="detail-item">
-                        <span class="label">Liquidity:</span>
-                        <span class="value">${liquidity}</span>
+                    <div class="metric-item">
+                        <div class="metric-label">💧 Liquidity</div>
+                        <div class="metric-value">${liquidity}</div>
                     </div>
                 ` : ''}
             </div>
-        </div>
-        
-        <div class="loading-message">
-            <p>Analyzing risk factors...</p>
+            
+            <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9rem;">
+                ⏳ Analyzing risk factors...
+            </div>
         </div>
     `;
     
+    resultsSection.innerHTML = messageHTML;
     resultsSection.style.display = 'block';
 }
 
