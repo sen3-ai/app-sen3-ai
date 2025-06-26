@@ -11,6 +11,7 @@ import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { CoingeckoProvider } from './providers/CoingeckoProvider';
 import { BubblemapProvider } from './providers/BubblemapProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
+import { RiskExplanation } from './processors/ResponseProcessor';
 
 // Load configuration
 const config = Config.getInstance();
@@ -95,11 +96,13 @@ function getAddressType(address: string): AddressType {
 }
 
 // Helper method to generate description
-function generateDescription(addressType: string, explanations: string[], score: number): string {
+function generateDescription(addressType: string, explanations: RiskExplanation[], score: number): string {
   let description = `${addressType.toUpperCase()} address. `;
   
   if (explanations.length > 0) {
-    description += `Risk factors: ${explanations.join(', ')}. `;
+    // Extract text from explanations
+    const explanationTexts = explanations.map(exp => exp.text);
+    description += `Risk factors: ${explanationTexts.join(', ')}. `;
   }
   
   description += `Final risk score: ${score}/100.`;

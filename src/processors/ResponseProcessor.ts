@@ -1,15 +1,20 @@
 import { CollectedData } from '../providers/DataCollector';
 
+export interface RiskExplanation {
+  text: string;
+  type: 'increase' | 'decrease' | 'neutral';
+}
+
 export interface RiskAssessment {
   score: number; // 0-100
-  explanations: string[]; // List of reasons for the score
+  explanations: RiskExplanation[]; // List of reasons for the score with categorization
   confidence: number; // 0-1 confidence in the assessment
   processorName: string; // Name of the processor that made this assessment
 }
 
 export interface ProcessorResult {
   score: number; // 0-100
-  explanations: string[]; // List of reasons for the score
+  explanations: RiskExplanation[]; // List of reasons for the score with categorization
 }
 
 export abstract class BaseResponseProcessor {

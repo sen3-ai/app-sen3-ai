@@ -1,9 +1,9 @@
-import { BaseResponseProcessor, RiskAssessment } from './ResponseProcessor';
+import { BaseResponseProcessor, RiskAssessment, RiskExplanation } from './ResponseProcessor';
 import { CollectedData } from '../providers/DataCollector';
 
 export interface MergedRiskAssessment {
   finalScore: number; // 0-100
-  explanations: string[]; // Combined explanations from all processors
+  explanations: RiskExplanation[]; // Combined explanations from all processors
   confidence: number; // 0-1 overall confidence
   processorAssessments: RiskAssessment[]; // Individual processor results
   processorCount: number; // Number of processors that contributed
@@ -51,7 +51,7 @@ export class ProcessorManager {
       // Fallback assessment if no processors succeeded
       return {
         finalScore: 50,
-        explanations: ['No risk assessment processors available'],
+        explanations: [{ text: 'No risk assessment processors available', type: 'neutral' }],
         confidence: 0.1,
         processorAssessments: [],
         processorCount: 0
@@ -77,7 +77,7 @@ export class ProcessorManager {
     // Weighted average based on confidence
     let totalWeightedScore = 0;
     let totalWeight = 0;
-    const allExplanations: string[] = [];
+    const allExplanations: RiskExplanation[] = [];
     let totalConfidence = 0;
 
     assessments.forEach(assessment => {
@@ -91,8 +91,10 @@ export class ProcessorManager {
     const finalScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 50;
     const averageConfidence = totalConfidence / assessments.length;
 
-    // Remove duplicate explanations
-    const uniqueExplanations = [...new Set(allExplanations)];
+    // Remove duplicate explanations based on text content
+    const uniqueExplanations = allExplanations.filter((explanation, index, self) => 
+      index === self.findIndex(e => e.text === explanation.text)
+    );
 
     return {
       finalScore: Math.round(finalScore),
