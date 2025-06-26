@@ -266,6 +266,7 @@ function showRiskResults(riskData, contractInfo) {
     const description = riskData.description || '';
     const explanations = riskData.explanations || [];
     const contractDetails = riskData.contractInfo || {};
+    const debugData = riskData.debug || null;
     
     // Create Telegram-like message
     const messageHTML = createTelegramMessage({
@@ -275,16 +276,22 @@ function showRiskResults(riskData, contractInfo) {
         blockchain,
         riskScore,
         contractDetails,
-        explanations
+        explanations,
+        debugData
     });
     
     resultsSection.innerHTML = messageHTML;
     resultsSection.style.display = 'block';
+    
+    // Add event listeners for debug blocks if debug data exists
+    if (debugData) {
+        addDebugBlockListeners();
+    }
 }
 
 // Create Telegram-like message format
 function createTelegramMessage(data) {
-    const { name, symbol, address, blockchain, riskScore, contractDetails, explanations } = data;
+    const { name, symbol, address, blockchain, riskScore, contractDetails, explanations, debugData } = data;
     
     // Format contract address for display
     const shortAddress = address.length > 20 ? 
@@ -306,6 +313,9 @@ function createTelegramMessage(data) {
     const increaseFactors = explanations.filter(exp => exp.type === 'increase');
     const decreaseFactors = explanations.filter(exp => exp.type === 'decrease');
     const neutralFactors = explanations.filter(exp => exp.type === 'neutral');
+    
+    // Create debug information block if debug data exists
+    const debugBlock = debugData ? createDebugBlock(debugData) : '';
     
     return `
         <div class="risk-message">
@@ -366,8 +376,180 @@ function createTelegramMessage(data) {
                     </ul>
                 </div>
             ` : ''}
+            
+            ${debugBlock}
         </div>
     `;
+}
+
+// Create debug information block
+function createDebugBlock(debugData) {
+    const debugSections = [];
+    
+    // Add provider data section
+    if (debugData.providerData && Object.keys(debugData.providerData).length > 0) {
+        const providerSection = createProviderDebugSection(debugData.providerData);
+        debugSections.push(providerSection);
+    }
+    
+    // Add processing info section
+    if (debugData.processingTime || debugData.processorCount || debugData.confidence) {
+        const processingSection = createProcessingDebugSection(debugData);
+        debugSections.push(processingSection);
+    }
+    
+    // Add request params section
+    if (debugData.requestParams) {
+        const requestSection = createRequestDebugSection(debugData.requestParams);
+        debugSections.push(requestSection);
+    }
+    
+    if (debugSections.length === 0) {
+        return '';
+    }
+    
+    return `
+        <div class="debug-section">
+            <div class="debug-header">
+                <span class="debug-icon">🔧</span>
+                <span class="debug-title">Debug Information</span>
+                <span class="debug-toggle">▼</span>
+            </div>
+            <div class="debug-content" style="display: none;">
+                ${debugSections.join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Create provider debug section
+function createProviderDebugSection(providerData) {
+    const providerItems = Object.entries(providerData).map(([name, data]) => {
+        const status = data.status || 'unknown';
+        const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'pending';
+        
+        return `
+            <div class="debug-provider-item">
+                <div class="debug-provider-header">
+                    <span class="debug-provider-name">${name}</span>
+                    <span class="debug-provider-status ${statusClass}">${status}</span>
+                    <span class="debug-provider-toggle">▼</span>
+                </div>
+                <div class="debug-provider-content" style="display: none;">
+                    <div class="debug-provider-details">
+                        <div class="debug-provider-detail">
+                            <strong>Provider:</strong> ${data.provider || 'N/A'}
+                        </div>
+                        <div class="debug-provider-detail">
+                            <strong>Timestamp:</strong> ${data.timestamp || 'N/A'}
+                        </div>
+                        ${data.rawData ? `
+                            <div class="debug-provider-detail">
+                                <strong>Raw Data:</strong>
+                                <pre class="debug-provider-data">${JSON.stringify(data.rawData, null, 2)}</pre>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    return `
+        <div class="debug-subsection">
+            <h4 class="debug-subsection-title">📡 Provider Data</h4>
+            <div class="debug-provider-list">
+                ${providerItems}
+            </div>
+        </div>
+    `;
+}
+
+// Create processing info debug section
+function createProcessingDebugSection(processingInfo) {
+    const processingDetails = [];
+    
+    if (processingInfo.processingTime) {
+        processingDetails.push(`<div class="debug-processing-detail"><strong>Processing Time:</strong> ${processingInfo.processingTime}ms</div>`);
+    }
+    
+    if (processingInfo.processorCount) {
+        processingDetails.push(`<div class="debug-processing-detail"><strong>Processor Count:</strong> ${processingInfo.processorCount}</div>`);
+    }
+    
+    if (processingInfo.confidence) {
+        processingDetails.push(`<div class="debug-processing-detail"><strong>Confidence:</strong> ${processingInfo.confidence}</div>`);
+    }
+    
+    if (processingInfo.addressType) {
+        processingDetails.push(`<div class="debug-processing-detail"><strong>Address Type:</strong> ${processingInfo.addressType}</div>`);
+    }
+    
+    if (processingInfo.processorAssessments) {
+        processingDetails.push(`
+            <div class="debug-processing-detail">
+                <strong>Processor Assessments:</strong>
+                <pre class="debug-processing-data">${JSON.stringify(processingInfo.processorAssessments, null, 2)}</pre>
+            </div>
+        `);
+    }
+    
+    return `
+        <div class="debug-subsection">
+            <h4 class="debug-subsection-title">⚙️ Processing Information</h4>
+            <div class="debug-processing-details">
+                ${processingDetails.join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Create request params debug section
+function createRequestDebugSection(requestParams) {
+    return `
+        <div class="debug-subsection">
+            <h4 class="debug-subsection-title">📋 Request Parameters</h4>
+            <pre class="debug-processing-data">${JSON.stringify(requestParams, null, 2)}</pre>
+        </div>
+    `;
+}
+
+// Add event listeners for debug blocks
+function addDebugBlockListeners() {
+    // Main debug section toggle
+    const debugHeader = document.querySelector('.debug-header');
+    if (debugHeader) {
+        debugHeader.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            const toggle = this.querySelector('.debug-toggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▼';
+            }
+        });
+    }
+    
+    // Provider debug toggles
+    const providerHeaders = document.querySelectorAll('.debug-provider-header');
+    providerHeaders.forEach(header => {
+        header.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const content = this.nextElementSibling;
+            const toggle = this.querySelector('.debug-provider-toggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▼';
+            }
+        });
+    });
 }
 
 // Get risk level (low, medium, high)

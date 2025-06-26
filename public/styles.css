@@ -768,4 +768,217 @@ body {
     .metric-value {
         font-size: 0.9rem;
     }
+}
+
+/* Debug Information Styles */
+.debug-section {
+    margin-top: 20px;
+    border: 1px solid #e1e5e9;
+    border-radius: 10px;
+    background: #f8f9fa;
+    overflow: hidden;
+}
+
+.debug-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #e9ecef;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.debug-header:hover {
+    background: #dee2e6;
+}
+
+.debug-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.debug-title {
+    flex: 1;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.debug-toggle {
+    font-size: 0.8rem;
+    color: #6c757d;
+    transition: transform 0.2s ease;
+}
+
+.debug-content {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #e1e5e9;
+}
+
+.debug-subsection {
+    margin-bottom: 20px;
+}
+
+.debug-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.debug-subsection-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.debug-provider-list,
+.debug-raw-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debug-provider-item,
+.debug-raw-item {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+}
+
+.debug-provider-header,
+.debug-raw-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.debug-provider-header:hover,
+.debug-raw-header:hover {
+    background: #e9ecef;
+}
+
+.debug-provider-name,
+.debug-raw-name {
+    flex: 1;
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.9rem;
+    text-transform: capitalize;
+}
+
+.debug-provider-status {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 8px;
+}
+
+.debug-provider-status.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.debug-provider-status.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.debug-provider-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.debug-provider-toggle,
+.debug-raw-toggle {
+    font-size: 0.7rem;
+    color: #6c757d;
+    transition: transform 0.2s ease;
+}
+
+.debug-provider-content,
+.debug-raw-content {
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #dee2e6;
+}
+
+.debug-provider-data,
+.debug-raw-data,
+.debug-processing-data {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #495057;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.debug-provider-details,
+.debug-processing-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debug-provider-detail,
+.debug-processing-detail {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.debug-provider-detail:last-child,
+.debug-processing-detail:last-child {
+    border-bottom: none;
+}
+
+.debug-provider-detail strong,
+.debug-processing-detail strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Mobile responsive styles for debug section */
+@media (max-width: 768px) {
+    .debug-header {
+        padding: 10px 12px;
+    }
+    
+    .debug-content {
+        padding: 12px;
+    }
+    
+    .debug-provider-header,
+    .debug-raw-header {
+        padding: 8px 10px;
+    }
+    
+    .debug-provider-content,
+    .debug-raw-content {
+        padding: 10px;
+    }
+    
+    .debug-provider-data,
+    .debug-raw-data,
+    .debug-processing-data {
+        font-size: 0.75rem;
+        padding: 10px;
+        max-height: 200px;
+    }
 } 
