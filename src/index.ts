@@ -154,7 +154,7 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
       found: false
     };
 
-    if (contractInfo && contractInfo.source === 'dexscreener' && contractInfo.rawData && contractInfo.rawData.length > 0) {
+    if (contractInfo && contractInfo.provider === 'dexscreener' && contractInfo.rawData && contractInfo.rawData.length > 0) {
       // Get the best pair (highest liquidity)
       const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
         const bestLiquidity = best.liquidity?.usd || 0;
@@ -337,7 +337,7 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
         const result = await dexscreenerProvider.fetch(address, chain);
         
         // Check if we got real data (not mock data)
-        if (result && result.source === 'dexscreener' && result.rawData && result.rawData.length > 0) {
+        if (result && result.provider === 'dexscreener' && result.rawData && result.rawData.length > 0) {
           // Process each pair found for this chain
           result.rawData.forEach((pair: any) => {
             // Only include if the base token matches our search address
