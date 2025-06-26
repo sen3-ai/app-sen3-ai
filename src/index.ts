@@ -115,6 +115,7 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
   try {
     const { chain, address } = req.params;
     const { debug } = req.query;
+    const isDebugMode = debug === 'true';
     
     if (!address || typeof address !== 'string') {
       res.status(400).json({
@@ -196,14 +197,13 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     // Step 3: Collect data from all providers
     const collectedData = await dataCollector.collectData(address, chain);
     
-    // Step 4: Filter out mock data (removed)
-    // const realData = filterMockData(collectedData);
+    // Step 4: Use collected data directly (no filtering)
     const realData = collectedData;
     
     // Step 5: Process data through all processors
     const riskAssessment = await processorManager.processData(address, addressType, realData);
     
-    // Build response based on debug parameter
+    // Build response
     const response: any = {
       result: true,
       data: {
@@ -217,11 +217,21 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
       }
     };
 
-    // Only include raw provider data if debug parameter is present
-    if (debug) {
-      response.data.providerData = realData;
-      response.data.processorAssessments = riskAssessment.processorAssessments;
-      response.data.processorCount = riskAssessment.processorCount;
+    // Include debug information if debug mode is enabled
+    if (isDebugMode) {
+      response.data.debug = {
+        addressType: addressType,
+        providerData: realData,
+        processorAssessments: riskAssessment.processorAssessments,
+        processorCount: riskAssessment.processorCount,
+        confidence: riskAssessment.confidence,
+        requestParams: {
+          chain: chain,
+          address: address,
+          debug: isDebugMode
+        },
+        processingTime: new Date().toISOString()
+      };
     }
     
     res.json(response);
@@ -309,6 +319,8 @@ app.get('/config', (req: Request, res: Response): void => {
 app.get('/search/:address', async (req: Request, res: Response): Promise<void> => {
   try {
     const { address } = req.params;
+    const { debug } = req.query;
+    const isDebugMode = debug === 'true';
     
     if (!address || typeof address !== 'string') {
       res.status(400).json({
@@ -342,14 +354,39 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       pairAddress?: string;
     }> = [];
 
+    const debugData: any = {
+      searchedChains: [],
+      chainResults: {},
+      errors: [],
+      requestParams: {
+        address: address,
+        debug: isDebugMode
+      },
+      processingTime: new Date().toISOString()
+    };
+
     // Search across all supported chains
     for (const chain of supportedChains) {
       try {
+        debugData.searchedChains.push(chain);
+        debugData.chainResults[chain] = {
+          status: 'processing',
+          pairsFound: 0,
+          error: null
+        };
+
         const dexscreenerProvider = new DexScreenerProvider();
         const result = await dexscreenerProvider.fetch(address, chain);
         
         // Check if we got real data (not mock data)
         if (result && result.provider === 'dexscreener' && result.rawData && result.rawData.length > 0) {
+          debugData.chainResults[chain].status = 'success';
+          debugData.chainResults[chain].pairsFound = result.rawData.length;
+          
+          if (isDebugMode) {
+            debugData.chainResults[chain].rawData = result.rawData;
+          }
+
           // Process each pair found for this chain
           result.rawData.forEach((pair: any) => {
             // Only include if the base token matches our search address
@@ -367,9 +404,16 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
               });
             }
           });
+        } else {
+          debugData.chainResults[chain].status = 'no_data';
+          debugData.chainResults[chain].pairsFound = 0;
         }
       } catch (error) {
-        console.warn(`Error searching on ${chain}:`, error instanceof Error ? error.message : 'Unknown error');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn(`Error searching on ${chain}:`, errorMessage);
+        debugData.chainResults[chain].status = 'error';
+        debugData.chainResults[chain].error = errorMessage;
+        debugData.errors.push({ chain, error: errorMessage });
         // Continue with other chains even if one fails
       }
     }
@@ -379,7 +423,7 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       index === self.findIndex(m => m.blockchain === match.blockchain && m.owner.toLowerCase() === match.owner.toLowerCase())
     );
 
-    res.json({
+    const response: any = {
       result: true,
       data: {
         address: address,
@@ -388,7 +432,14 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
         searchedChains: supportedChains,
         timestamp: new Date().toISOString()
       }
-    });
+    };
+
+    // Include debug information if debug mode is enabled
+    if (isDebugMode) {
+      response.data.debug = debugData;
+    }
+
+    res.json(response);
 
   } catch (error) {
     res.status(500).json({

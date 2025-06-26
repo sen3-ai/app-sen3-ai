@@ -29,8 +29,8 @@ export class DataCollector {
       try {
         let data;
         
-        // Check if the provider supports chain parameter by checking if it's DexScreenerProvider
-        if (chain && provider.getName() === 'dexscreener') {
+        // Pass chain parameter to all providers that support it
+        if (chain) {
           data = await (provider as any).fetch(source, chain);
         } else {
           data = await provider.fetch(source);
