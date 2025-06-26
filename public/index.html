@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Risk Assessment Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Blockchain Risk Assessment</h1>
+            <p>Analyze smart contract addresses across multiple blockchains for security risks</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="search-section">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Enter contract address (e.g., 0xdac17f958d2ee523a2206206994597c13d831ec7)"
+                        autocomplete="off"
+                    >
+                    <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                </div>
+            </div>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Analyzing contract address...</p>
+            </div>
+            
+            <div id="error" class="error-message" style="display: none;">
+                <h3>Error</h3>
+                <p></p>
+            </div>
+            
+            <div id="noResults" class="no-results" style="display: none;">
+                <h3>No Results Found</h3>
+                <p>The contract address was not found on any supported blockchain.</p>
+            </div>
+            
+            <div id="resultsSection" class="results-section">
+                <div id="resultsContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 

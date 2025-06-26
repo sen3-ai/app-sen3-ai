@@ -104,10 +104,24 @@ src/
 └── index.ts        # Main application entry point
 
 public/
-└── index.html      # Web interface
+├── index.html      # Web interface HTML
+├── styles.css      # CSS styles
+└── script.js       # JavaScript functionality
 
 tests/              # Test files
 ```
+
+### Web Interface Files
+
+The web interface is now separated into three files for better maintainability:
+
+- **`public/index.html`**: Main HTML structure
+- **`public/styles.css`**: All CSS styling and responsive design
+- **`public/script.js`**: JavaScript functionality including:
+  - Search and autocomplete
+  - API integration
+  - Results display
+  - Error handling
 
 ### Running Tests
 ```bash
