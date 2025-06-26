@@ -17,4 +17,4 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
       - name: Run update script on server
-        run: ssh root@api.sen3.ai './update.sh'
+        run: ssh root@app.sen3.ai './update.sh'
