@@ -6,9 +6,7 @@ import { DataCollector } from './providers/DataCollector';
 import { ProcessorManager } from './processors/ProcessorManager';
 import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProcessor';
 import { AMLBotProvider } from './providers/AMLBotProvider';
-import { BubblemapProvider } from './providers/BubblemapProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
-import { TwitterProvider } from './providers/TwitterProvider';
 import { CoingeckoProvider } from './providers/CoingeckoProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 
@@ -38,27 +36,21 @@ const dataCollector = new DataCollector();
 const processorManager = new ProcessorManager();
 const contractVerifier = new ContractVerifier();
 
+// Only register real providers
+const providerRegistry: Record<string, any> = {
+  amlbot: AMLBotProvider,
+  coingecko: CoingeckoProvider,
+  dexscreener: DexScreenerProvider,
+};
+
 // Add providers based on configuration
 const providerConfigs = config.getProviderConfigs();
 providerConfigs.forEach(providerConfig => {
-  switch (providerConfig.name) {
-    case 'amlbot':
-      dataCollector.addProvider(new AMLBotProvider());
-      break;
-    case 'bubblemap':
-      dataCollector.addProvider(new BubblemapProvider());
-      break;
-    case 'dexscreener':
-      dataCollector.addProvider(new DexScreenerProvider());
-      break;
-    case 'twitter':
-      dataCollector.addProvider(new TwitterProvider(config));
-      break;
-    case 'coingecko':
-      dataCollector.addProvider(new CoingeckoProvider());
-      break;
-    default:
-      console.warn(`Unknown provider: ${providerConfig.name}`);
+  const provider = providerRegistry[providerConfig.name];
+  if (provider) {
+    dataCollector.addProvider(new provider(config));
+  } else {
+    console.warn(`Unknown provider: ${providerConfig.name}`);
   }
 });
 
@@ -470,13 +462,6 @@ function isMockDataProvider(providerName: string, data: any): boolean {
       }
       break;
     
-    case 'bubblemap':
-      // Check if it's using mock data
-      if (data.source === 'bubblemap_mock') {
-        return true;
-      }
-      break;
-    
     case 'dexscreener':
       // Check if it's using mock data
       if (data.source === 'dexscreener_mock') {
@@ -487,13 +472,6 @@ function isMockDataProvider(providerName: string, data: any): boolean {
     case 'coingecko':
       // Check if it's using mock data
       if (data.source === 'coingecko' && data.rawData === null) {
-        return true;
-      }
-      break;
-    
-    case 'twitter':
-      // Check if it's using mock data
-      if (data.source === 'twitter' && !data.apiKeyConfigured) {
         return true;
       }
       break;
