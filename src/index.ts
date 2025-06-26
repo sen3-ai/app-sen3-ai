@@ -5,14 +5,11 @@ import { Config } from './config/Config';
 import { DataCollector } from './providers/DataCollector';
 import { ProcessorManager } from './processors/ProcessorManager';
 import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProcessor';
-import { BlockchainProvider } from './providers/BlockchainProvider';
-import { ReputationProvider } from './providers/ReputationProvider';
-import { SocialProvider } from './providers/SocialProvider';
-import { OnchainProvider } from './providers/OnchainProvider';
 import { AMLBotProvider } from './providers/AMLBotProvider';
 import { BubblemapProvider } from './providers/BubblemapProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { TwitterProvider } from './providers/TwitterProvider';
+import { CoingeckoProvider } from './providers/CoingeckoProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 
 // Load configuration
@@ -45,18 +42,6 @@ const contractVerifier = new ContractVerifier();
 const providerConfigs = config.getProviderConfigs();
 providerConfigs.forEach(providerConfig => {
   switch (providerConfig.name) {
-    case 'blockchain':
-      dataCollector.addProvider(new BlockchainProvider());
-      break;
-    case 'reputation':
-      dataCollector.addProvider(new ReputationProvider());
-      break;
-    case 'social':
-      dataCollector.addProvider(new SocialProvider());
-      break;
-    case 'onchain':
-      dataCollector.addProvider(new OnchainProvider());
-      break;
     case 'amlbot':
       dataCollector.addProvider(new AMLBotProvider());
       break;
@@ -68,6 +53,9 @@ providerConfigs.forEach(providerConfig => {
       break;
     case 'twitter':
       dataCollector.addProvider(new TwitterProvider(config));
+      break;
+    case 'coingecko':
+      dataCollector.addProvider(new CoingeckoProvider());
       break;
     default:
       console.warn(`Unknown provider: ${providerConfig.name}`);
@@ -104,15 +92,11 @@ function getAddressType(address: string): AddressType {
 }
 
 // Helper method to generate description
-function generateDescription(addressType: string, explanations: string[], score: number, confidence: number): string {
+function generateDescription(addressType: string, explanations: string[], score: number): string {
   let description = `${addressType.toUpperCase()} address. `;
   
   if (explanations.length > 0) {
     description += `Risk factors: ${explanations.join(', ')}. `;
-  }
-  
-  if (confidence < 0.7) {
-    description += `Low confidence due to data collection issues. `;
   }
   
   description += `Final risk score: ${score}/100.`;
@@ -123,7 +107,8 @@ function generateDescription(addressType: string, explanations: string[], score:
 // Risk assessment endpoint
 app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { address, chain } = req.params;
+    const { chain, address } = req.params;
+    const { debug } = req.query;
     
     if (!address || typeof address !== 'string') {
       res.status(400).json({
@@ -203,28 +188,37 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     const addressType = getAddressType(address);
     
     // Step 3: Collect data from all providers
-    const collectedData = await dataCollector.collectData(address);
+    const collectedData = await dataCollector.collectData(address, chain);
     
-    // Step 4: Process data through all processors
-    const riskAssessment = await processorManager.processData(address, addressType, collectedData);
+    // Step 4: Filter out mock data (removed)
+    // const realData = filterMockData(collectedData);
+    const realData = collectedData;
     
-    res.json({
+    // Step 5: Process data through all processors
+    const riskAssessment = await processorManager.processData(address, addressType, realData);
+    
+    // Build response based on debug parameter
+    const response: any = {
       result: true,
       data: {
         address: address,
         chain: chain,
-        addressType: addressType,
         contractInfo: basicInfo,
         riskScore: riskAssessment.finalScore,
-        description: generateDescription(addressType, riskAssessment.explanations, riskAssessment.finalScore, riskAssessment.confidence),
-        confidence: riskAssessment.confidence,
+        description: generateDescription(addressType, riskAssessment.explanations, riskAssessment.finalScore),
         explanations: riskAssessment.explanations,
-        processorCount: riskAssessment.processorCount,
-        processorAssessments: riskAssessment.processorAssessments,
-        providerData: collectedData,
         timestamp: new Date().toISOString()
       }
-    });
+    };
+
+    // Only include raw provider data if debug parameter is present
+    if (debug) {
+      response.data.providerData = realData;
+      response.data.processorAssessments = riskAssessment.processorAssessments;
+      response.data.processorCount = riskAssessment.processorCount;
+    }
+    
+    res.json(response);
   } catch (error) {
     res.status(500).json({
       result: false,
@@ -411,4 +405,99 @@ if (require.main === module) {
     console.log(`Available processors: ${processorManager.getProcessors().map(p => p.getName()).join(', ')}`);
     console.log(`Supported blockchains: ${config.getBlockchainConfigs().map(bc => bc.name).join(', ')}`);
   });
+}
+
+// Utility function to filter out mock data
+function filterMockData(collectedData: any): any {
+  const filteredData: any = {};
+  const mockProviders: string[] = [];
+
+  for (const [providerName, data] of Object.entries(collectedData)) {
+    if (providerName === 'errors') {
+      // Keep errors
+      filteredData.errors = data;
+      continue;
+    }
+
+    // Check if this is mock data based on various indicators
+    const isMockData = isMockDataProvider(providerName, data);
+    
+    if (isMockData) {
+      mockProviders.push(providerName);
+      console.log(`Filtering out mock data from provider: ${providerName}`);
+    } else {
+      filteredData[providerName] = data;
+    }
+  }
+
+  if (mockProviders.length > 0) {
+    console.log(`Filtered out mock data from providers: ${mockProviders.join(', ')}`);
+  }
+
+  return filteredData;
+}
+
+// Determines if provider data is mock data based on various indicators
+function isMockDataProvider(providerName: string, data: any): boolean {
+  if (!data) return true;
+
+  // Check source field for mock indicators
+  if (data.source && typeof data.source === 'string') {
+    const source = data.source.toLowerCase();
+    if (source.includes('mock') || source.includes('_mock')) {
+      return true;
+    }
+  }
+
+  // Check apiKeyConfigured field
+  if (data.apiKeyConfigured === false) {
+    return true;
+  }
+
+  // Provider-specific mock detection
+  switch (providerName) {
+    case 'social':
+    case 'reputation':
+    case 'blockchain':
+    case 'onchain':
+      // These providers are currently all mock data
+      return true;
+    
+    case 'amlbot':
+      // Check if it's using mock data
+      if (data.source === 'amlbot-mock') {
+        return true;
+      }
+      break;
+    
+    case 'bubblemap':
+      // Check if it's using mock data
+      if (data.source === 'bubblemap_mock') {
+        return true;
+      }
+      break;
+    
+    case 'dexscreener':
+      // Check if it's using mock data
+      if (data.source === 'dexscreener_mock') {
+        return true;
+      }
+      break;
+    
+    case 'coingecko':
+      // Check if it's using mock data
+      if (data.source === 'coingecko' && data.rawData === null) {
+        return true;
+      }
+      break;
+    
+    case 'twitter':
+      // Check if it's using mock data
+      if (data.source === 'twitter' && !data.apiKeyConfigured) {
+        return true;
+      }
+      break;
+  }
+
+  return false;
 }

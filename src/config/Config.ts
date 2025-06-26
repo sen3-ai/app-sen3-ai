@@ -55,6 +55,7 @@ export interface ApiCredentials {
   amlbotAccessKey?: string;
   bubblemapApiKey?: string;
   twitterApiKey?: string;
+  coingeckoApiKey?: string;
 }
 
 export interface AppConfig {
@@ -187,7 +188,8 @@ export class Config {
       amlbotTmId: process.env.AMLBOT_TM_ID,
       amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY,
       bubblemapApiKey: process.env.BUBBLEMAP_API_KEY,
-      twitterApiKey: process.env.TWITTER_API_KEY
+      twitterApiKey: process.env.TWITTER_API_KEY,
+      coingeckoApiKey: process.env.COINGECKO_API_KEY
     };
   }
 
@@ -247,23 +249,37 @@ export class Config {
         retries: 3
       },
       {
-        name: 'bubblemap',
+        name: 'amlbot',
         enabled: true,
         priority: 5,
         timeout: 8000,
         retries: 3
       },
       {
-        name: 'dexscreener',
+        name: 'bubblemap',
         enabled: true,
         priority: 6,
+        timeout: 8000,
+        retries: 3
+      },
+      {
+        name: 'dexscreener',
+        enabled: true,
+        priority: 7,
         timeout: 5000,
+        retries: 2
+      },
+      {
+        name: 'coingecko',
+        enabled: true,
+        priority: 8,
+        timeout: 10000,
         retries: 2
       },
       {
         name: 'twitter',
         enabled: true,
-        priority: 7,
+        priority: 9,
         timeout: 10000,
         retries: 1
       }

@@ -20,14 +20,22 @@ export class DataCollector {
     return [...this.providers];
   }
 
-  async collectData(source: string): Promise<CollectedData> {
+  async collectData(source: string, chain?: string): Promise<CollectedData> {
     const results: CollectedData = {};
     const errors: string[] = [];
 
     // Execute all providers concurrently
     const providerPromises = this.providers.map(async (provider) => {
       try {
-        const data = await provider.fetch(source);
+        let data;
+        
+        // Check if the provider supports chain parameter by checking if it's DexScreenerProvider
+        if (chain && provider.getName() === 'dexscreener') {
+          data = await (provider as any).fetch(source, chain);
+        } else {
+          data = await provider.fetch(source);
+        }
+          
         if (data !== null) {
           results[provider.getName()] = data;
         } else {

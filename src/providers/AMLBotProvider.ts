@@ -32,14 +32,19 @@ export class AMLBotProvider extends BaseProvider {
         return this.generateMockData(address);
       }
 
-      const timeout = providerConfig?.timeout || 10000;
-      const retries = providerConfig?.retries || 3;
+      const timeout = providerConfig?.timeout || 30000;
+      const retries = providerConfig?.retries || 2;
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
+          console.log(`AMLBot API attempt ${attempt}/${retries} for address ${address} (timeout: ${timeout}ms)`);
           const response = await this.callAMLBotAPI(address, credentials.amlbotTmId, credentials.amlbotAccessKey, timeout);
           
           if (response.result && response.data) {
+            if (response.description === 'Request pending') {
+              console.log(`AMLBot API: Returning pending status for ${address}`);
+              return this.transformPendingResponse(address);
+            }
             return this.transformAMLBotResponse(response.data);
           } else {
             console.warn(`AMLBot API error: ${response.description}`);
@@ -53,7 +58,9 @@ export class AMLBotProvider extends BaseProvider {
             return this.generateMockData(address);
           }
           // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          const backoffTime = Math.pow(2, attempt) * 1000;
+          console.log(`Waiting ${backoffTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
         }
       }
 
@@ -75,25 +82,89 @@ export class AMLBotProvider extends BaseProvider {
       params.append('tmId', tmId);
       params.append('token', token);
 
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: params.toString(),
-        timeout: timeout
-      });
+      // Use AbortController for better timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const response = await fetch(this.baseUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString(),
+          signal: controller.signal as any // Type assertion to fix compatibility
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        // Check if response indicates pending status
+        if (data.result === false && data.description && data.description.toLowerCase().includes('pending')) {
+          console.log(`AMLBot API: Request is pending for address ${address}`);
+          return {
+            result: true,
+            description: 'Request pending',
+            data: {
+              riskscore: 0.5, // Default pending risk score
+              signals: {},
+              addressDetailsData: {}
+            }
+          };
+        }
+        
+        return data as AMLBotResponse;
+
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error(`Request timeout after ${timeout}ms`);
+        }
+        
+        throw fetchError;
       }
-
-      const data = await response.json();
-      return data as AMLBotResponse;
 
     } catch (error) {
       throw error;
     }
+  }
+
+  private transformPendingResponse(address: string): any {
+    return {
+      // Pending status data
+      riskScore: 50, // Neutral risk score for pending
+      riskLevel: 'medium',
+      isBlacklisted: false,
+      blacklistReasons: [],
+      tags: ['pending_analysis'],
+      firstSeen: null,
+      lastSeen: null,
+      transactionCount: 0,
+      totalVolume: 0,
+      suspiciousPatterns: [],
+      description: `AMLBot analysis is pending for address ${address}. This may take some time to complete.`,
+      
+      // Legacy/compat fields for processor
+      reputationScore: 50,
+      trustScore: 50,
+      reports: 0,
+      positiveFeedback: 50,
+      negativeFeedback: 50,
+      
+      // Provider metadata
+      apiKeyConfigured: true,
+      providerConfig: {
+        timeout: 30000,
+        retries: 2
+      },
+      source: 'amlbot-pending'
+    };
   }
 
   private transformAMLBotResponse(data: AMLBotResponse['data']): any {

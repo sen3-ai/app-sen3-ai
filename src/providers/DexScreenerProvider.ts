@@ -74,6 +74,8 @@ export class DexScreenerProvider extends BaseProvider {
 
   async fetch(address: string, chain?: string): Promise<any> {
     return this.safeFetch(async () => {
+      console.log(`DexScreenerProvider.fetch called with address: ${address}, chain: ${chain}`);
+      
       const providerConfigs = this.config.getProviderConfigs() || [];
       const providerConfig: Partial<ProviderConfig> = providerConfigs.find(p => p.name === 'dexscreener') || {};
 
@@ -83,33 +85,38 @@ export class DexScreenerProvider extends BaseProvider {
       // Determine the chain to use
       const targetChain = this.resolveChain(chain);
       if (!targetChain) {
-        console.warn(`Unsupported chain for DexScreener: ${chain}, using mock data`);
-        return this.generateMockData(address, chain);
+        throw new Error(`Unsupported chain for DexScreener: ${chain}. Supported chains: ${Object.keys(CHAIN_MAPPING).join(', ')}`);
       }
+
+      console.log(`DexScreenerProvider using targetChain: ${targetChain}`);
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
+          console.log(`DexScreenerProvider attempt ${attempt}/${retries} for ${address} on ${targetChain}`);
           const response = await this.callDexScreenerAPI(address, targetChain, timeout);
           
           if (response && response.length > 0) {
+            console.log(`DexScreenerProvider found ${response.length} pairs for ${address} on ${targetChain}`);
             return this.transformDexScreenerResponse(response, address, targetChain);
           } else {
             console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
             if (attempt === retries) {
-              return this.generateMockData(address, targetChain);
+              console.log(`DexScreenerProvider returning null after ${retries} attempts`);
+              return null; // Return null instead of mock data
             }
           }
         } catch (error) {
           console.warn(`DexScreener API attempt ${attempt} failed:`, error);
           if (attempt === retries) {
-            return this.generateMockData(address, targetChain);
+            throw error; // Re-throw the error instead of returning mock data
           }
           // Wait before retry (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
       }
 
-      return this.generateMockData(address, targetChain);
+      console.log(`DexScreenerProvider returning null after all retries`);
+      return null; // Return null if no data found after all retries
     });
   }
 
@@ -153,7 +160,7 @@ export class DexScreenerProvider extends BaseProvider {
 
   private transformDexScreenerResponse(response: DexScreenerResponse, address: string, chain: string): any {
     if (response.length === 0) {
-      return this.generateMockData(address, chain);
+      return null;
     }
 
     // Get the most liquid pair (highest USD liquidity)
@@ -320,51 +327,6 @@ export class DexScreenerProvider extends BaseProvider {
     }
 
     return explanation;
-  }
-
-  private generateMockData(address: string, chain?: string): any {
-    const targetChain = chain || 'ethereum';
-    
-    return {
-      tokenName: 'Mock Token',
-      tokenSymbol: 'MOCK',
-      tokenAddress: address,
-      chain: targetChain,
-      priceUsd: 0.001,
-      volume24h: 50000,
-      liquidityUsd: 100000,
-      fdv: 1000000,
-      transactions24h: 500,
-      priceChange24h: 5.2,
-      pairAddress: '0x1234567890123456789012345678901234567890',
-      dexId: 'uniswap_v2',
-      quoteToken: {
-        address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-        name: 'Wrapped Ether',
-        symbol: 'WETH'
-      },
-      riskScore: 30,
-      riskLevel: 'medium',
-      isBlacklisted: false,
-      blacklistReasons: [],
-      tags: ['mock_data'],
-      firstSeen: new Date().toISOString(),
-      lastSeen: null,
-      totalVolume: 50000,
-      suspiciousPatterns: [],
-      description: `Mock data for ${address} on ${targetChain}`,
-      reputationScore: 70,
-      trustScore: 70,
-      reports: 0,
-      positiveFeedback: 70,
-      negativeFeedback: 30,
-      apiKeyConfigured: false,
-      providerConfig: {
-        timeout: 10000,
-        retries: 3
-      },
-      source: 'dexscreener_mock'
-    };
   }
 
   /**
