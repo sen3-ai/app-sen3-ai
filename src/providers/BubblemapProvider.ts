@@ -140,7 +140,7 @@ export class BubblemapProvider extends BaseProvider {
 
   private async callBubblemapAPI(address: string, chain: string, apiKey: string, timeout: number): Promise<BubblemapResponse> {
     try {
-      const url = `${this.baseUrl}/${chain}/${address}?return_nodes=true&return_relationships=true`;
+      const url = `${this.baseUrl}/${chain}/${address}?return_nodes=true`;
       console.log(`Bubblemap API URL: ${url}`);
       
       const timeoutPromise = new Promise<never>((_, reject) => {
