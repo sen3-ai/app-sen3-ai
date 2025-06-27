@@ -36,7 +36,7 @@ export class DexToolsProvider extends BaseProvider {
       const url = `https://public-api.dextools.io/trial/v2/token/${targetChain}/${address}`;
 
       // Add 1-second delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
