@@ -19,6 +19,10 @@ export interface CommonData {
   // Holders and distribution
   holdersCount?: number; // Total number of holders
   topHoldersPercentage?: number; // Percentage held by top holders
+  top3HoldersPercentage?: number; // Percentage held by top 3 holders
+  top5HoldersPercentage?: number; // Percentage held by top 5 holders
+  top10HoldersPercentage?: number; // Percentage held by top 10 holders
+  totalSupply?: number; // Total token supply
   
   // Social and community
   twitterFollowers?: number; // Twitter followers count

@@ -178,24 +178,58 @@ export class BubblemapProvider extends BaseProvider {
   }
 
   extractCommonData(rawData: any): CommonData {
-    if (!rawData || rawData.decentralization_score === undefined) {
+    if (!rawData || !rawData.nodes) {
       return {};
     }
 
-    // Calculate top holders percentage from clusters
-    let topHoldersPercentage = 0;
-    if (rawData.clusters && rawData.clusters.length > 0) {
-      // Sum the top 3 clusters
-      const top3Clusters = rawData.clusters
-        .sort((a: any, b: any) => b.share - a.share)
-        .slice(0, 3);
-      topHoldersPercentage = top3Clusters.reduce((sum: number, cluster: any) => sum + cluster.share, 0);
+    // Collect all top_holders from all nodes
+    const allTopHolders: Array<{ amount: number; share: number }> = [];
+    
+    // Ensure nodes is an array
+    const nodesArr = Array.isArray(rawData.nodes) ? rawData.nodes : [rawData.nodes];
+    
+    for (const node of nodesArr) {
+      if (node && node.top_holders && Array.isArray(node.top_holders)) {
+        for (const holder of node.top_holders) {
+          // Check for different possible field names
+          const amount = holder.holder_data?.amount || null;
+          const share = holder?.holder_data?.share || null;
+          
+          if (amount !== undefined && share !== undefined && share > 0) {
+            allTopHolders.push({ amount, share });
+          }
+        }
+      }
     }
 
+    // Remove duplicates and sort by share (descending)
+    const uniqueHolders = allTopHolders
+      .filter((holder, index, self) => 
+        index === self.findIndex(h => h.amount === holder.amount)
+      )
+      .sort((a, b) => b.share - a.share);
+
+    // Calculate top holders percentages
+    const top3HoldersPercentage = Math.round(uniqueHolders.slice(0, 3).reduce((sum, holder) => sum + holder.share, 0) * 1000) / 10;
+    const top5HoldersPercentage = Math.round(uniqueHolders.slice(0, 5).reduce((sum, holder) => sum + holder.share, 0) * 1000) / 10;
+    const top10HoldersPercentage = Math.round(uniqueHolders.slice(0, 10).reduce((sum, holder) => sum + holder.share, 0) * 1000) / 10;
+
+    // Calculate total supply from first non-zero share holder
+    let totalSupply = 0;
+    if (uniqueHolders.length > 0) {
+      const firstHolder = uniqueHolders[0];
+      totalSupply = Math.round(firstHolder.amount / firstHolder.share);
+    }
+
+    // Calculate decentralization score
+    const decentralizationScore = Math.max(0, 100 - top10HoldersPercentage);
+
     return {
-      decentralizationScore: rawData.decentralization_score,
-      topHoldersPercentage: topHoldersPercentage > 0 ? topHoldersPercentage : undefined,
-      lastUpdated: new Date().toISOString()
+      decentralizationScore,
+      top3HoldersPercentage,
+      top5HoldersPercentage,
+      top10HoldersPercentage,
+      totalSupply,
     };
   }
 } 
