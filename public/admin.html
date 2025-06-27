@@ -107,6 +107,27 @@
                 </div>
 
                 <div class="setting-group">
+                    <h3>Top 10 Holders Percentage (%)</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="top10holders-low">Low Risk (<):</label>
+                            <input type="number" id="top10holders-low" placeholder="5">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="top10holders-medium">Medium Risk (5 - 10):</label>
+                            <input type="number" id="top10holders-medium" placeholder="10">
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="top10holders-high">High Risk (>):</label>
+                            <input type="number" id="top10holders-high" placeholder="10">
+                            <span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
                     <h3>Connected Wallets Threshold</h3>
                     <div class="input-group">
                         <label for="connected-wallets">Top % share same cluster (risky flag):</label>

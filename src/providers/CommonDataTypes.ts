@@ -39,6 +39,17 @@ export interface CommonData {
   contractAddress?: string; // Contract address
   chain?: string; // Blockchain chain
   lastUpdated?: string; // ISO timestamp of last update
+
+  // DexTools/Token metadata
+  name?: string;
+  symbol?: string;
+  address?: string;
+  decimals?: number;
+  logo?: string;
+  description?: string;
+  creationTime?: string;
+  creationBlock?: number;
+  socialInfo?: any;
 }
 
 // Provider-specific data extraction interface

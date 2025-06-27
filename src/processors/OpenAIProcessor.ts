@@ -236,12 +236,17 @@ Consider all the rules I provided and explain your reasoning for each risk facto
 - < ${riskConfig.top3ClustersPercentage.low}% → Low Risk
 - Top 5 share the same cluster → Red Flag
 
-## 5. Token Age
+## 5. Top 10 Holders Percentage
+- < ${riskConfig.top10HoldersPercentage.low}% held by top 10 holders → Low Risk
+- ${riskConfig.top10HoldersPercentage.low}–${riskConfig.top10HoldersPercentage.medium}% → Medium Risk
+- > ${riskConfig.top10HoldersPercentage.high}% held by top 10 holders → High Risk
+
+## 6. Token Age
 - < ${riskConfig.tokenAge.high} days → High Risk ***
 - ${riskConfig.tokenAge.medium}–${riskConfig.tokenAge.low} days → Medium Risk
 - > ${riskConfig.tokenAge.low} days → Normal Risk
 
-## 6. Market Cap & FDV
+## 7. Market Cap & FDV
 - > $${(riskConfig.marketCap.low / 1000000).toFixed(0)}M Market Cap → Low Risk
 - $${(riskConfig.marketCap.medium / 1000000).toFixed(0)}M–$${(riskConfig.marketCap.low / 1000000).toFixed(0)}M → Moderate Risk
 - $${(riskConfig.marketCap.high / 1000000).toFixed(0)}M–$${(riskConfig.marketCap.medium / 1000000).toFixed(0)}M → High Risk
@@ -319,6 +324,14 @@ Always provide detailed reasoning for your risk assessment. If data is missing f
           clusterId: cluster.cluster_id
         }))
       };
+    }
+
+    // Add top 10 holders percentage from common data if available
+    if (collectedData.bubblemap?.status === 'success' && collectedData.bubblemap.commonData) {
+      const commonData = collectedData.bubblemap.commonData;
+      if (commonData.top10HoldersPercentage !== undefined) {
+        summary.top10HoldersPercentage = commonData.top10HoldersPercentage;
+      }
     }
 
     return JSON.stringify(summary, null, 2);

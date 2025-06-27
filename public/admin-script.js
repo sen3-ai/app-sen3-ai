@@ -571,6 +571,13 @@ class AdminSettings {
             document.getElementById('clusters-critical').value = risk.top3ClustersPercentage.critical || '';
         }
 
+        // Top 10 Holders Percentage
+        if (risk.top10HoldersPercentage) {
+            document.getElementById('top10holders-low').value = risk.top10HoldersPercentage.low || '';
+            document.getElementById('top10holders-medium').value = risk.top10HoldersPercentage.medium || '';
+            document.getElementById('top10holders-high').value = risk.top10HoldersPercentage.high || '';
+        }
+
         // Connected Wallets
         document.getElementById('connected-wallets').value = risk.connectedWalletsThreshold || '';
 
@@ -728,6 +735,11 @@ class AdminSettings {
                     medium: parseInt(document.getElementById('clusters-medium').value) || 50,
                     high: parseInt(document.getElementById('clusters-high').value) || 80,
                     critical: parseInt(document.getElementById('clusters-critical').value) || 80
+                },
+                top10HoldersPercentage: {
+                    low: parseInt(document.getElementById('top10holders-low').value) || 5,
+                    medium: parseInt(document.getElementById('top10holders-medium').value) || 10,
+                    high: parseInt(document.getElementById('top10holders-high').value) || 10
                 },
                 connectedWalletsThreshold: parseInt(document.getElementById('connected-wallets').value) || 50,
                 tokenAge: {

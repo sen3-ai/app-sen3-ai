@@ -122,6 +122,11 @@
       "high": 80,
       "critical": 80
     },
+    "top10HoldersPercentage": {
+      "low": 5,
+      "medium": 10,
+      "high": 10
+    },
     "connectedWalletsThreshold": 50,
     "tokenAge": {
       "low": 30,

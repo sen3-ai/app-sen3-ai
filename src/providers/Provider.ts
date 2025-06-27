@@ -1,13 +1,13 @@
 import { CommonData } from './CommonDataTypes';
 
 export interface Provider {
-  fetch(source: string): Promise<any>;
+  fetch(source: string, chain?: string): Promise<any>;
   getName(): string;
   extractCommonData(rawData: any): CommonData;
 }
 
 export abstract class BaseProvider implements Provider {
-  abstract fetch(source: string): Promise<any>;
+  abstract fetch(source: string, chain?: string): Promise<any>;
   abstract getName(): string;
   
   extractCommonData(rawData: any): CommonData {

@@ -199,6 +199,10 @@ export class Config {
     return this.config.credentials.twitterApiKey;
   }
 
+  public getPromptConfig(): any {
+    return this.getRiskAssessmentConfig();
+  }
+
   private loadConfig(): AppConfig {
     // Load base config from JSON file
     const configPath = path.join(process.cwd(), 'config', 'config.json');

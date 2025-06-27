@@ -23,7 +23,7 @@ export class AMLBotProvider extends BaseProvider {
     return 'amlbot';
   }
 
-  async fetch(address: string): Promise<any> {
+  async fetch(source: string, chain?: string): Promise<any> {
     return this.safeFetch(async () => {
       const credentials = this.config.getCredentials();
       const providerConfig = this.config.getProviderConfigs().find(p => p.name === 'amlbot');
@@ -38,8 +38,8 @@ export class AMLBotProvider extends BaseProvider {
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-          console.log(`AMLBot API attempt ${attempt}/${retries} for address ${address} (timeout: ${timeout}ms)`);
-          const response = await this.callAMLBotAPI(address, credentials.amlbotTmId, credentials.amlbotAccessKey, timeout);
+          console.log(`AMLBot API attempt ${attempt}/${retries} for address ${source} (timeout: ${timeout}ms)`);
+          const response = await this.callAMLBotAPI(source, credentials.amlbotTmId, credentials.amlbotAccessKey, timeout);
           
           if (response.result && response.data) {
             return {

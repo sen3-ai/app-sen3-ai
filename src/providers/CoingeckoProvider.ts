@@ -92,7 +92,7 @@ export class CoingeckoProvider extends BaseProvider {
     return mappedChain;
   }
 
-  async fetch(address: string, chain: string = 'ethereum'): Promise<any> {
+  async fetch(address: string, chain?: string): Promise<any> {
     return this.safeFetch(async () => {
       if (!this.apiKey) {
         console.warn('Coingecko API key not configured');
@@ -105,7 +105,7 @@ export class CoingeckoProvider extends BaseProvider {
         };
       }
 
-      const targetChain = this.resolveChain(chain);
+      const targetChain = this.resolveChain(chain || 'ethereum');
       if (!targetChain) {
         console.warn(`Unsupported chain for Coingecko: ${chain}`);
         return {

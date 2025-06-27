@@ -29,13 +29,7 @@ export class DataCollector {
     for (const provider of providers) {
       try {
         let result;
-        
-        // Check if provider supports chain parameter
-        if (provider.supportsChain()) {
-          result = await provider.fetch(source, chain);
-        } else {
-          result = await provider.fetch(source);
-        }
+        result = await provider.fetch(source, chain);
 
         if (result && result.status === 'success') {
           try {
