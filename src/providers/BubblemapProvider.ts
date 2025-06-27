@@ -230,6 +230,7 @@ export class BubblemapProvider extends BaseProvider {
       top5HoldersPercentage,
       top10HoldersPercentage,
       totalSupply,
+      clusters: rawData.clusters || [],
     };
   }
 } 

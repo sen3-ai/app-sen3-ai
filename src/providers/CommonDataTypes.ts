@@ -23,6 +23,7 @@ export interface CommonData {
   top5HoldersPercentage?: number; // Percentage held by top 5 holders
   top10HoldersPercentage?: number; // Percentage held by top 10 holders
   totalSupply?: number; // Total token supply
+  clusters?: any[]; // Detected clusters
   
   // Social and community
   twitterFollowers?: number; // Twitter followers count
