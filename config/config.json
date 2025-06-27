@@ -82,7 +82,7 @@
   "processors": [
     {
       "name": "comprehensive",
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "openai",

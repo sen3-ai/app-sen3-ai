@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
 import type { ProviderConfig } from '../config/Config';
+import { CommonData } from './CommonDataTypes';
 
 interface DexScreenerPair {
   chainId: string;
@@ -191,5 +192,79 @@ export class DexScreenerProvider extends BaseProvider {
 
   getChainMapping(): { [key: string]: string } {
     return { ...CHAIN_MAPPING };
+  }
+
+  extractCommonData(rawData: any): CommonData {
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+      return {};
+    }
+
+    // Calculate aggregated values across all pairs
+    let totalVolume24h = 0;
+    let totalTxCount24h = 0;
+    let totalBuyTxCount24h = 0;
+    let totalSellTxCount24h = 0;
+    let totalLiquidity = 0;
+    let totalFdv = 0;
+    let priceSum = 0;
+    let priceCount = 0;
+    let priceChangeSum = 0;
+    let priceChangeCount = 0;
+
+    // Process each pair
+    rawData.forEach((pair: DexScreenerPair) => {
+      // Volume
+      if (pair.volume?.h24) {
+        totalVolume24h += pair.volume.h24;
+      }
+
+      // Transaction counts
+      if (pair.txns?.h24) {
+        totalBuyTxCount24h += pair.txns.h24.buys || 0;
+        totalSellTxCount24h += pair.txns.h24.sells || 0;
+        totalTxCount24h += (pair.txns.h24.buys || 0) + (pair.txns.h24.sells || 0);
+      }
+
+      // Liquidity
+      if (pair.liquidity?.usd) {
+        totalLiquidity += pair.liquidity.usd;
+      }
+
+      // Price (average across all pairs)
+      if (pair.priceUsd) {
+        const price = parseFloat(pair.priceUsd);
+        if (!isNaN(price)) {
+          priceSum += price;
+          priceCount++;
+        }
+      }
+
+      // Price change (average across all pairs)
+      if (pair.priceChange?.h24 !== undefined) {
+        priceChangeSum += pair.priceChange.h24;
+        priceChangeCount++;
+      }
+
+      // FDV (use the highest FDV among all pairs)
+      if (pair.fdv && pair.fdv > totalFdv) {
+        totalFdv = pair.fdv;
+      }
+    });
+
+    // Calculate averages
+    const avgPrice = priceCount > 0 ? priceSum / priceCount : undefined;
+    const avgPriceChange24h = priceChangeCount > 0 ? priceChangeSum / priceChangeCount : undefined;
+
+    return {
+      price: avgPrice,
+      priceChange24h: avgPriceChange24h,
+      volume24h: totalVolume24h > 0 ? totalVolume24h : undefined,
+      fullyDilutedValuation: totalFdv > 0 ? totalFdv : undefined,
+      txCount24h: totalTxCount24h > 0 ? totalTxCount24h : undefined,
+      buyTxCount24h: totalBuyTxCount24h > 0 ? totalBuyTxCount24h : undefined,
+      sellTxCount24h: totalSellTxCount24h > 0 ? totalSellTxCount24h : undefined,
+      liquidity: totalLiquidity > 0 ? totalLiquidity : undefined,
+      lastUpdated: new Date().toISOString()
+    };
   }
 } 

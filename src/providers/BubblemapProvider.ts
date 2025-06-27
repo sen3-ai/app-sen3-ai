@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
 import type { ProviderConfig } from '../config/Config';
+import { CommonData } from './CommonDataTypes';
 
 interface BubblemapResponse {
   metadata: {
@@ -174,5 +175,27 @@ export class BubblemapProvider extends BaseProvider {
 
   getChainMapping(): { [key: string]: string } {
     return CHAIN_MAPPING;
+  }
+
+  extractCommonData(rawData: any): CommonData {
+    if (!rawData || rawData.decentralization_score === undefined) {
+      return {};
+    }
+
+    // Calculate top holders percentage from clusters
+    let topHoldersPercentage = 0;
+    if (rawData.clusters && rawData.clusters.length > 0) {
+      // Sum the top 3 clusters
+      const top3Clusters = rawData.clusters
+        .sort((a: any, b: any) => b.share - a.share)
+        .slice(0, 3);
+      topHoldersPercentage = top3Clusters.reduce((sum: number, cluster: any) => sum + cluster.share, 0);
+    }
+
+    return {
+      decentralizationScore: rawData.decentralization_score,
+      topHoldersPercentage: topHoldersPercentage > 0 ? topHoldersPercentage : undefined,
+      lastUpdated: new Date().toISOString()
+    };
   }
 } 

@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
+import { CommonData } from './CommonDataTypes';
 import crypto from 'crypto';
 
 interface AMLBotResponse {
@@ -137,5 +138,16 @@ export class AMLBotProvider extends BaseProvider {
     } catch (error) {
       throw error;
     }
+  }
+
+  extractCommonData(rawData: any): CommonData {
+    if (!rawData || !rawData.riskscore) {
+      return {};
+    }
+
+    return {
+      amlbotScore: rawData.riskscore / 100, // Convert to 0-1 scale
+      lastUpdated: new Date().toISOString()
+    };
   }
 } 

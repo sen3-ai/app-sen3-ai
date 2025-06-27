@@ -1,5 +1,6 @@
 import { BaseProvider } from './Provider';
 import { Config } from '../config/Config';
+import { CommonData } from './CommonDataTypes';
 
 // Chain mapping from our internal names to Coingecko chain IDs
 const CHAIN_MAPPING: { [key: string]: string } = {
@@ -179,5 +180,24 @@ export class CoingeckoProvider extends BaseProvider {
         timestamp: new Date().toISOString()
       };
     });
+  }
+
+  extractCommonData(rawData: any): CommonData {
+    if (!rawData || !rawData.market_data) {
+      return {};
+    }
+
+    const marketData = rawData.market_data;
+    const communityData = rawData.community_data;
+
+    return {
+      price: marketData.current_price?.usd,
+      priceChange24h: marketData.price_change_percentage_24h,
+      volume24h: marketData.total_volume?.usd,
+      marketCap: marketData.market_cap?.usd,
+      fullyDilutedValuation: marketData.fully_diluted_valuation?.usd,
+      twitterFollowers: communityData?.twitter_followers,
+      lastUpdated: new Date().toISOString()
+    };
   }
 } 

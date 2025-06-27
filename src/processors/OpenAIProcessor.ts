@@ -205,7 +205,7 @@ Consider all the rules I provided and explain your reasoning for each risk facto
   }
 
   private buildSystemPrompt(): string {
-    return `You are a blockchain risk assessment expert. Analyze token contracts based on the following comprehensive rules:
+    return `You are a blockchain risk assessment expert. Analyze token contracts based on the following comprehensive rules using standardized data:
 
 ## 1. DEX Volume & Holders
 - > $1M 24h volume → Very Low Risk
@@ -248,13 +248,29 @@ Consider all the rules I provided and explain your reasoning for each risk facto
 - FDV > 10x Market Cap → Red Flag
 - FDV > 10x TVL → Inefficient Capital
 
-Always provide detailed reasoning for your risk assessment. If data is missing for any category, note it in your analysis.`;
+## Data Format
+The data will be provided in a standardized format with the following fields:
+- price: Current token price in USD
+- volume24h: 24-hour trading volume in USD
+- marketCap: Market capitalization in USD
+- fullyDilutedValuation: FDV in USD
+- txCount24h: Number of transactions in last 24h
+- liquidity: Total liquidity in USD
+- amlbotScore: AMLBot risk score (0-1)
+- decentralizationScore: Decentralization score (0-100)
+
+Always provide detailed reasoning for your risk assessment. If data is missing for any category, note it in your analysis. Use the standardized data when available for more accurate assessment.`;
   }
 
   private prepareDataSummary(collectedData: CollectedData): string {
     const summary: any = {};
 
-    // AMLBot data
+    // Use common data if available, otherwise fall back to raw data
+    if (collectedData.commonData) {
+      summary.commonData = collectedData.commonData;
+    }
+
+    // Also include raw data for reference
     if (collectedData.amlbot?.status === 'success' && collectedData.amlbot.rawData) {
       const amlData = collectedData.amlbot.rawData;
       summary.amlbot = {
@@ -264,7 +280,6 @@ Always provide detailed reasoning for your risk assessment. If data is missing f
       };
     }
 
-    // Coingecko data
     if (collectedData.coingecko?.status === 'success' && collectedData.coingecko.rawData) {
       const cgData = collectedData.coingecko.rawData;
       summary.coingecko = {
@@ -275,7 +290,6 @@ Always provide detailed reasoning for your risk assessment. If data is missing f
       };
     }
 
-    // DexScreener data
     if (collectedData.dexscreener?.status === 'success' && collectedData.dexscreener.rawData) {
       const dexData = collectedData.dexscreener.rawData;
       if (dexData.length > 0) {
@@ -291,7 +305,6 @@ Always provide detailed reasoning for your risk assessment. If data is missing f
       }
     }
 
-    // Bubblemap data
     if (collectedData.bubblemap?.status === 'success' && collectedData.bubblemap.rawData) {
       const bubblemapData = collectedData.bubblemap.rawData;
       summary.bubblemap = {
