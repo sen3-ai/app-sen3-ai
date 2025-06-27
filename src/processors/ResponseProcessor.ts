@@ -10,11 +10,13 @@ export interface RiskAssessment {
   explanations: RiskExplanation[]; // List of reasons for the score with categorization
   confidence: number; // 0-1 confidence in the assessment
   processorName: string; // Name of the processor that made this assessment
+  rawResponse?: string; // Raw response from the API (optional)
 }
 
 export interface ProcessorResult {
   score: number; // 0-100
   explanations: RiskExplanation[]; // List of reasons for the score with categorization
+  rawResponse?: string; // Raw response from the API (optional)
 }
 
 export abstract class BaseResponseProcessor {
@@ -46,7 +48,8 @@ export abstract class BaseResponseProcessor {
       score: Math.max(0, Math.min(100, result.score)),
       explanations: result.explanations,
       confidence,
-      processorName: this.getName()
+      processorName: this.getName(),
+      rawResponse: result.rawResponse
     };
   }
 } 

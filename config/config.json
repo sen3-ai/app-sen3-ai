@@ -83,8 +83,20 @@
     {
       "name": "comprehensive",
       "enabled": true
+    },
+    {
+      "name": "openai",
+      "enabled": true
     }
   ],
+  "openai": {
+    "enabled": true,
+    "model": "gpt-4o",
+    "maxTokens": 2000,
+    "temperature": 0.2,
+    "timeout": 30000,
+    "retries": 3
+  },
   "riskAssessment": {
     "volume24h": {
       "low": 1000000,

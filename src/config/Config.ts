@@ -166,6 +166,34 @@ export class Config {
     return {};
   }
 
+  public getOpenAIConfig(): any {
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
+    try {
+      if (fs.existsSync(configPath)) {
+        const configFile = fs.readFileSync(configPath, 'utf8');
+        const baseConfig = JSON.parse(configFile);
+        return baseConfig.openai || {
+          enabled: false,
+          model: 'gpt-4o',
+          maxTokens: 2000,
+          temperature: 0.2,
+          timeout: 30000,
+          retries: 3
+        };
+      }
+    } catch (error) {
+      console.error('Error loading OpenAI config:', error);
+    }
+    return {
+      enabled: false,
+      model: 'gpt-4o',
+      maxTokens: 2000,
+      temperature: 0.2,
+      timeout: 30000,
+      retries: 3
+    };
+  }
+
   public getTwitterApiKey(): string | undefined {
     return this.config.credentials.twitterApiKey;
   }

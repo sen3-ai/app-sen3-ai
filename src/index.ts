@@ -6,6 +6,7 @@ import { Config } from './config/Config';
 import { DataCollector } from './providers/DataCollector';
 import { ProcessorManager } from './processors/ProcessorManager';
 import { ComprehensiveRiskProcessor } from './processors/ComprehensiveRiskProcessor';
+import { OpenAIProcessor } from './processors/OpenAIProcessor';
 import { AMLBotProvider } from './providers/AMLBotProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { CoingeckoProvider } from './providers/CoingeckoProvider';
@@ -78,6 +79,9 @@ processorConfigs.forEach(processorConfig => {
   switch (processorConfig.name) {
     case 'comprehensive':
       processorManager.addProcessor(new ComprehensiveRiskProcessor());
+      break;
+    case 'openai':
+      processorManager.addProcessor(new OpenAIProcessor());
       break;
     default:
       console.warn(`Unknown processor: ${processorConfig.name}`);
