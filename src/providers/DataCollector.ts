@@ -22,64 +22,55 @@ export class DataCollector {
     return [...this.providers];
   }
 
-  async collectData(source: string, chain?: string): Promise<CollectedData> {
-    const results: CollectedData = {};
-    const commonData: { [providerName: string]: CommonData } = {};
-    const errors: string[] = [];
+  async collectData(source: string, chain: string): Promise<CollectedData> {
+    const providers = this.getProviders();
+    const collectedData: CollectedData = {};
 
-    console.log(`DataCollector.collectData called with source: "${source}", chain: "${chain}"`);
-
-    // Execute all providers concurrently
-    const providerPromises = this.providers.map(async (provider) => {
+    for (const provider of providers) {
       try {
-        let data;
+        let result;
         
-        // Pass chain parameter to all providers that support it
-        if (chain) {
-          console.log(`Calling provider ${provider.getName()} with source: "${source}", chain: "${chain}"`);
-          data = await (provider as any).fetch(source, chain);
+        // Check if provider supports chain parameter
+        if (provider.supportsChain()) {
+          result = await provider.fetch(source, chain);
         } else {
-          console.log(`Calling provider ${provider.getName()} with source: "${source}" (no chain)`);
-          data = await provider.fetch(source);
+          result = await provider.fetch(source);
         }
-          
-        if (data !== null) {
-          results[provider.getName()] = data;
-          
-          // Extract common data if the provider returned successful data
-          if (data.status === 'success' && data.rawData) {
-            try {
-              const extractedCommonData = provider.extractCommonData(data.rawData);
-              if (Object.keys(extractedCommonData).length > 0) {
-                commonData[provider.getName()] = extractedCommonData;
-              }
-            } catch (extractionError) {
-              console.warn(`Failed to extract common data from ${provider.getName()}:`, extractionError);
-            }
+
+        if (result && result.status === 'success') {
+          try {
+            const commonData = provider.extractCommonData(result.rawData);
+            collectedData[provider.getName()] = {
+              status: 'success',
+              rawData: result.rawData,
+              commonData: commonData,
+              timestamp: result.timestamp
+            };
+          } catch (extractionError) {
+            console.warn(`Failed to extract common data from ${provider.getName()}:`, extractionError);
+            collectedData[provider.getName()] = {
+              status: 'error',
+              error: extractionError instanceof Error ? extractionError.message : 'Data extraction failed',
+              timestamp: result.timestamp
+            };
           }
         } else {
-          errors.push(`${provider.getName()}: Failed to fetch data`);
+          collectedData[provider.getName()] = {
+            status: result?.status || 'error',
+            error: result?.error || 'Unknown error',
+            timestamp: result?.timestamp || new Date().toISOString()
+          };
         }
       } catch (error) {
-        const errorMessage = `${provider.getName()}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        errors.push(errorMessage);
         console.warn(`Provider ${provider.getName()} threw an error:`, error);
+        collectedData[provider.getName()] = {
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        };
       }
-    });
-
-    // Wait for all providers to complete
-    await Promise.allSettled(providerPromises);
-
-    // Add common data to results if any was extracted
-    if (Object.keys(commonData).length > 0) {
-      results.commonData = commonData;
     }
 
-    // Add errors to results if any occurred
-    if (errors.length > 0) {
-      results.errors = errors;
-    }
-
-    return results;
+    return collectedData;
   }
 } 

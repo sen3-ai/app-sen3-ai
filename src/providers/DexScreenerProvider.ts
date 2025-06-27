@@ -75,76 +75,76 @@ export class DexScreenerProvider extends BaseProvider {
 
   async fetch(address: string, chain?: string): Promise<any> {
     return this.safeFetch(async () => {
-      console.log(`DexScreenerProvider.fetch called with address: ${address}, chain: ${chain}`);
-      
-      const providerConfigs = this.config.getProviderConfigs() || [];
-      const providerConfig: Partial<ProviderConfig> = providerConfigs.find(p => p.name === 'dexscreener') || {};
-
-      const timeout = providerConfig?.timeout || 10000;
-      const retries = providerConfig?.retries || 3;
-
-      // Determine the chain to use
       const targetChain = this.resolveChain(chain);
       if (!targetChain) {
+        console.warn(`Chain '${chain}' not supported by DexScreener. Supported chains: ${Object.keys(CHAIN_MAPPING).join(', ')}`);
         return {
           rawData: null,
           status: 'error',
-          error: `Unsupported chain for DexScreener: ${chain}. Supported chains: ${Object.keys(CHAIN_MAPPING).join(', ')}`,
+          error: `Unsupported chain: ${chain}`,
           provider: 'dexscreener',
           timestamp: new Date().toISOString()
         };
       }
 
-      console.log(`DexScreenerProvider using targetChain: ${targetChain}`);
+      const url = `https://api.dexscreener.com/latest/dex/tokens/${address}`;
+      const retries = 3;
+      let lastError: any;
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-          console.log(`DexScreenerProvider attempt ${attempt}/${retries} for ${address} on ${targetChain}`);
-          const response = await this.callDexScreenerAPI(address, targetChain, timeout);
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`DexScreener API error: ${response.status} ${response.statusText}`);
+          }
+
+          const data = await response.json();
           
-          if (response && response.length > 0) {
-            console.log(`DexScreenerProvider found ${response.length} pairs for ${address} on ${targetChain}`);
-            return {
-              rawData: response,
-              status: 'success',
-              provider: 'dexscreener',
-              timestamp: new Date().toISOString()
-            };
-          } else {
-            console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
-            if (attempt === retries) {
+          if (data && data.pairs && Array.isArray(data.pairs)) {
+            const filteredPairs = data.pairs.filter((pair: any) => 
+              pair.chainId && pair.chainId.toLowerCase() === targetChain.toLowerCase()
+            );
+
+            if (filteredPairs.length > 0) {
               return {
-                rawData: null,
-                status: 'not_found',
-                error: 'No trading pairs found',
+                rawData: filteredPairs,
+                status: 'success',
                 provider: 'dexscreener',
                 timestamp: new Date().toISOString()
               };
+            } else {
+              console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
             }
+          } else {
+            console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
           }
+
+          // If we get here, no pairs were found, but it's not an error
+          return {
+            rawData: [],
+            status: 'success',
+            provider: 'dexscreener',
+            timestamp: new Date().toISOString()
+          };
+
         } catch (error) {
+          lastError = error;
           console.warn(`DexScreener API attempt ${attempt} failed:`, error);
-          if (attempt === retries) {
-            return {
-              rawData: null,
-              status: 'error',
-              error: error instanceof Error ? error.message : 'Unknown error',
-              provider: 'dexscreener',
-              timestamp: new Date().toISOString()
-            };
+          
+          if (attempt < retries) {
+            const backoffTime = Math.pow(2, attempt) * 1000;
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
           }
-          // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
       }
 
-      return {
-        rawData: null,
-        status: 'error',
-        error: 'All retry attempts failed',
-        provider: 'dexscreener',
-        timestamp: new Date().toISOString()
-      };
+      throw lastError;
     });
   }
 

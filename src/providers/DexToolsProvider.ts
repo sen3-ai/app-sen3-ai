@@ -32,52 +32,62 @@ export class DexToolsProvider extends BaseProvider {
         };
       }
 
-      // Use the provided chain or default to ethereum
-      const targetChain = chain ? this.chainMap[chain] || chain : 'ether';
+      const targetChain = this.chainMap[chain || 'ethereum'] || 'ether';
       const url = `https://public-api.dextools.io/trial/v2/token/${targetChain}/${address}`;
-      
-      console.log(`DexToolsProvider.fetch called with address: ${address}, chain: ${chain}`);
-      console.log(`DexToolsProvider using targetChain: ${targetChain}`);
-      console.log(`DexTools API URL: ${url}`);
 
       // Add 1-second delay to avoid rate limiting
-      console.log('DexToolsProvider - Adding 1-second delay to avoid rate limiting...');
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json'
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': apiKey
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`DexTools API error: ${response.status} ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error(`DexTools API error: ${response.status} ${response.statusText}`);
+        const data = await response.json();
+        
+        return {
+          rawData: data,
+          status: 'success',
+          provider: 'dextools',
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
-
-      const data = await response.json();
-      console.log('DexToolsProvider - Raw response:', JSON.stringify(data, null, 2));
-      
-      return {
-        rawData: data,
-        status: 'success',
-        provider: 'dextools',
-        timestamp: new Date().toISOString()
-      };
     });
   }
 
   extractCommonData(rawData: any): CommonData {
-    if (!rawData) {
+    if (!rawData || !rawData.data) {
       return {};
     }
 
-    // For now, return the raw data structure to see what we get
-    console.log('DexToolsProvider.extractCommonData - rawData structure:', Object.keys(rawData));
-    
+    const data = rawData.data;
     return {
-      lastUpdated: new Date().toISOString()
+      name: data.name || '',
+      symbol: data.symbol || '',
+      address: data.address || '',
+      decimals: data.decimals || 18,
+      logo: data.logo || '',
+      description: data.description || '',
+      creationTime: data.creationTime || '',
+      creationBlock: data.creationBlock || 0,
+      socialInfo: data.socialInfo || {}
     };
   }
 } 

@@ -44,49 +44,21 @@ app.get('/admin', (req: Request, res: Response): void => {
 });
 
 // Prompt info route - serve the prompt info interface
-app.get('/info/prompt', (req: Request, res: Response): void => {
-  console.log('INFO/PROMPT route hit');
-  console.log('Accept header:', req.headers.accept);
-  console.log('User-Agent:', req.headers['user-agent']);
-  
-  // Check if it's an API request (JSON) or HTML request
-  const acceptHeader = req.headers.accept || '';
-  if (acceptHeader.includes('application/json')) {
-    console.log('Serving JSON response');
-    // API request - return JSON data
-    try {
-      // Create a temporary OpenAI processor to get the system prompt
-      const openaiProcessor = new OpenAIProcessor();
-      
-      // Get the system prompt with current configuration values
-      const systemPrompt = openaiProcessor.buildSystemPrompt();
-      
-      // Get current risk assessment configuration
-      const riskConfig = config.getRiskAssessmentConfig();
-      
+app.get('/info/prompt', (req, res) => {
+  try {
+    const acceptHeader = req.headers.accept || '';
+    
+    if (acceptHeader.includes('application/json')) {
       res.json({
-        result: true,
-        data: {
-          systemPrompt: systemPrompt,
-          configuration: {
-            riskAssessment: riskConfig,
-            openai: config.getOpenAIConfig()
-          },
-          timestamp: new Date().toISOString(),
-          note: "This shows the current system prompt that will be sent to OpenAI with configuration values prefilled."
-        }
+        prompt: config.getPromptConfig(),
+        timestamp: new Date().toISOString()
       });
-    } catch (error) {
-      console.error('Error in JSON response:', error);
-      res.status(500).json({
-        result: false,
-        reason: error instanceof Error ? error.message : 'Failed to generate prompt info'
-      });
+    } else {
+      res.sendFile(path.join(__dirname, '../public/prompt-info.html'));
     }
-  } else {
-    console.log('Serving HTML response');
-    // HTML request - serve the page
-    res.sendFile(path.join(__dirname, '../public/prompt-info.html'));
+  } catch (error) {
+    console.error('Error in JSON response:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -212,7 +184,6 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     console.log(`Request params - address: "${address}", chain: "${chain}"`);
 
     // Step 1: Fetch basic contract information from DexScreener
-    console.log(`Fetching basic contract information from DexScreener...`);
     const dexscreenerProvider = new DexScreenerProvider();
     const contractInfo = await dexscreenerProvider.fetch(address, chain);
     
@@ -245,13 +216,6 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
         pairAddress: bestPair.pairAddress || 'Unknown',
         found: true
       };
-      
-      console.log(`Found contract: ${basicInfo.name} (${basicInfo.symbol}) on ${basicInfo.dexId}`);
-    } else {
-      console.log(`No contract information found on DexScreener for ${chain}`);
-      if (contractInfo) {
-        console.log(`DexScreener response status: ${contractInfo.status}, has rawData: ${!!contractInfo.rawData}, rawData length: ${contractInfo.rawData?.length || 0}`);
-      }
     }
 
     // Step 2: Determine address type
@@ -410,26 +374,16 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       blockchain: string;
       name: string;
       owner: string;
-      symbol?: string;
+      symbol: string;
       priceUsd?: number;
-      liquidityUsd?: number;
-      volume24h?: number;
       dexId?: string;
-      pairAddress?: string;
     }> = [];
-
     const debugData: any = {
       searchedChains: [],
-      chainResults: {},
-      errors: [],
-      requestParams: {
-        address: address,
-        debug: isDebugMode
-      },
-      processingTime: new Date().toISOString()
+      chainResults: {}
     };
+    let found = false;
 
-    // Search across all supported chains using DexTools
     for (const chain of supportedChains) {
       try {
         debugData.searchedChains.push(chain);
@@ -460,31 +414,26 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
               owner: tokenData.address || address,
               symbol: tokenData.symbol,
               priceUsd: undefined, // DexTools doesn't provide price in this endpoint
-              liquidityUsd: undefined, // DexTools doesn't provide liquidity in this endpoint
-              volume24h: undefined, // DexTools doesn't provide volume in this endpoint
-              dexId: 'Unknown', // DexTools doesn't provide DEX info in this endpoint
-              pairAddress: undefined // DexTools doesn't provide pair address in this endpoint
+              dexId: 'Unknown'
             });
-            
-            // Found a match, stop searching other chains
-            console.log(`Found token "${tokenData.name}" on ${chain}, stopping search`);
+            found = true;
+            if (isDebugMode) {
+              console.log(`Found token "${tokenData.name}" on ${chain}, stopping search`);
+            }
             break;
           }
-        } else if (result && result.rawData && result.rawData.statusCode === 404) {
-          // Token not found on this chain
-          debugData.chainResults[chain].status = 'not_found';
-          debugData.chainResults[chain].dataFound = false;
         } else {
-          debugData.chainResults[chain].status = 'no_data';
+          debugData.chainResults[chain].status = result.status || 'not_found';
           debugData.chainResults[chain].dataFound = false;
+          debugData.chainResults[chain].error = result.error || null;
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.warn(`Error searching on ${chain}:`, errorMessage);
+      } catch (err: any) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         debugData.chainResults[chain].status = 'error';
         debugData.chainResults[chain].error = errorMessage;
-        debugData.errors.push({ chain, error: errorMessage });
-        // Continue with other chains even if one fails
+        if (isDebugMode) {
+          console.warn(`Error searching on ${chain}:`, errorMessage);
+        }
       }
     }
 
