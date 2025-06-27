@@ -11,6 +11,7 @@ import { AMLBotProvider } from './providers/AMLBotProvider';
 import { DexScreenerProvider } from './providers/DexScreenerProvider';
 import { CoingeckoProvider } from './providers/CoingeckoProvider';
 import { BubblemapProvider } from './providers/BubblemapProvider';
+import { DexToolsProvider } from './providers/DexToolsProvider';
 import { ContractVerifier } from './providers/ContractVerifier';
 import { RiskExplanation } from './processors/ResponseProcessor';
 import { ConfigManager } from './config/ConfigManager';
@@ -107,6 +108,7 @@ const providerRegistry: Record<string, any> = {
   coingecko: CoingeckoProvider,
   dexscreener: DexScreenerProvider,
   bubblemap: BubblemapProvider,
+  dextools: DexToolsProvider,
 };
 
 // Add providers based on configuration
@@ -400,10 +402,10 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    console.log(`Searching for contract ${address} across supported blockchains...`);
+    console.log(`Searching for contract ${address} across supported blockchains using DexTools...`);
 
-    // Supported blockchains for search
-    const supportedChains = ['ethereum', 'bsc', 'base', 'solana'];
+    // Supported blockchains for search (mapped to DexTools chain names)
+    const supportedChains = ['ethereum', 'bsc', 'solana', 'base', 'polygon', 'optimism'];
     const matches: Array<{
       blockchain: string;
       name: string;
@@ -427,62 +429,54 @@ app.get('/search/:address', async (req: Request, res: Response): Promise<void> =
       processingTime: new Date().toISOString()
     };
 
-    // Search across all supported chains
+    // Search across all supported chains using DexTools
     for (const chain of supportedChains) {
       try {
         debugData.searchedChains.push(chain);
         debugData.chainResults[chain] = {
           status: 'processing',
-          pairsFound: 0,
+          dataFound: false,
           error: null
         };
 
-        const dexscreenerProvider = new DexScreenerProvider();
-        const result = await dexscreenerProvider.fetch(address, chain);
+        const dextoolsProvider = new DexToolsProvider();
+        const result = await dextoolsProvider.fetch(address, chain);
         
-        // Check if we got real data (not mock data)
-        if (result && result.status === 'success' && result.rawData && result.rawData.length > 0) {
+        // Check if we got real data
+        if (result && result.status === 'success' && result.rawData && result.rawData.data) {
           debugData.chainResults[chain].status = 'success';
-          debugData.chainResults[chain].pairsFound = result.rawData.length;
+          debugData.chainResults[chain].dataFound = true;
           
           if (isDebugMode) {
             debugData.chainResults[chain].rawData = result.rawData;
           }
 
-          // Process each pair found for this chain
-          result.rawData.forEach((pair: any) => {
-            // Check if the base token matches our search address
-            if (pair.baseToken && pair.baseToken.address.toLowerCase() === address.toLowerCase()) {
-              matches.push({
-                blockchain: chain,
-                name: pair.baseToken.name || 'Unknown',
-                owner: pair.baseToken.address,
-                symbol: pair.baseToken.symbol,
-                priceUsd: parseFloat(pair.priceUsd || '0'),
-                liquidityUsd: pair.liquidity?.usd || 0,
-                volume24h: pair.volume?.h24 || 0,
-                dexId: pair.dexId,
-                pairAddress: pair.pairAddress
-              });
-            }
-            // Also check if the quote token matches our search address
-            else if (pair.quoteToken && pair.quoteToken.address.toLowerCase() === address.toLowerCase()) {
-              matches.push({
-                blockchain: chain,
-                name: pair.quoteToken.name || 'Unknown',
-                owner: pair.quoteToken.address,
-                symbol: pair.quoteToken.symbol,
-                priceUsd: parseFloat(pair.priceUsd || '0'),
-                liquidityUsd: pair.liquidity?.usd || 0,
-                volume24h: pair.volume?.h24 || 0,
-                dexId: pair.dexId,
-                pairAddress: pair.pairAddress
-              });
-            }
-          });
+          // Extract token information from DexTools response
+          const tokenData = result.rawData.data;
+          if (tokenData && tokenData.name) {
+            matches.push({
+              blockchain: chain,
+              name: tokenData.name || 'Unknown',
+              owner: tokenData.address || address,
+              symbol: tokenData.symbol,
+              priceUsd: undefined, // DexTools doesn't provide price in this endpoint
+              liquidityUsd: undefined, // DexTools doesn't provide liquidity in this endpoint
+              volume24h: undefined, // DexTools doesn't provide volume in this endpoint
+              dexId: 'Unknown', // DexTools doesn't provide DEX info in this endpoint
+              pairAddress: undefined // DexTools doesn't provide pair address in this endpoint
+            });
+            
+            // Found a match, stop searching other chains
+            console.log(`Found token "${tokenData.name}" on ${chain}, stopping search`);
+            break;
+          }
+        } else if (result && result.rawData && result.rawData.statusCode === 404) {
+          // Token not found on this chain
+          debugData.chainResults[chain].status = 'not_found';
+          debugData.chainResults[chain].dataFound = false;
         } else {
           debugData.chainResults[chain].status = 'no_data';
-          debugData.chainResults[chain].pairsFound = 0;
+          debugData.chainResults[chain].dataFound = false;
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -915,6 +909,9 @@ app.post('/admin/test-providers', async (req: Request, res: Response): Promise<v
             break;
           case 'bubblemap':
             providerInstance = new BubblemapProvider();
+            break;
+          case 'dextools':
+            providerInstance = new DexToolsProvider();
             break;
           default:
             continue;

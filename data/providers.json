@@ -2,25 +2,25 @@
   {
     "name": "amlbot",
     "enabled": true,
-    "status": "unknown",
-    "lastCheck": null
+    "status": "working",
+    "lastCheck": "2025-06-27T17:08:54.773Z"
   },
   {
     "name": "coingecko",
     "enabled": true,
-    "status": "unknown",
-    "lastCheck": null
+    "status": "working",
+    "lastCheck": "2025-06-27T17:08:55.167Z"
   },
   {
     "name": "dexscreener",
     "enabled": true,
-    "status": "unknown",
-    "lastCheck": null
+    "status": "no_data",
+    "lastCheck": "2025-06-27T17:08:55.528Z"
   },
   {
     "name": "bubblemap",
     "enabled": true,
-    "status": "unknown",
-    "lastCheck": null
+    "status": "working",
+    "lastCheck": "2025-06-27T17:08:55.760Z"
   }
 ]

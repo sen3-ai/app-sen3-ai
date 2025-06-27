@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "timestamp": "2025-06-27T17:07:28.899Z",
+    "level": "info",
+    "message": "Provider test completed: 4 successful, 0 failed"
+  },
+  {
+    "timestamp": "2025-06-27T17:08:55.762Z",
+    "level": "info",
+    "message": "Provider test completed: 4 successful, 0 failed"
+  }
+]

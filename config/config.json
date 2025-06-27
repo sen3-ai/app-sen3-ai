@@ -77,6 +77,13 @@
       "priority": 4,
       "timeout": 8000,
       "retries": 3
+    },
+    {
+      "name": "dextools",
+      "enabled": true,
+      "priority": 5,
+      "timeout": 8000,
+      "retries": 3
     }
   ],
   "processors": [

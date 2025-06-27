@@ -56,6 +56,7 @@ export interface ApiCredentials {
   bubblemapApiKey?: string;
   twitterApiKey?: string;
   coingeckoApiKey?: string;
+  dextoolsApiKey?: string;
 }
 
 export interface AppConfig {
@@ -263,7 +264,8 @@ export class Config {
       amlbotAccessKey: process.env.AMLBOT_ACCESS_KEY,
       bubblemapApiKey: process.env.BUBBLEMAP_API_KEY,
       twitterApiKey: process.env.TWITTER_API_KEY,
-      coingeckoApiKey: process.env.COINGECKO_API_KEY
+      coingeckoApiKey: process.env.COINGECKO_API_KEY,
+      dextoolsApiKey: process.env.DEXTOOLS_API_KEY
     };
   }
 
