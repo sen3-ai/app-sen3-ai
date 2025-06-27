@@ -182,6 +182,38 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="setting-group">
+                    <h3>Twitter Mentions Thresholds</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="twitter-low">Low Risk (>):</label>
+                            <input type="number" id="twitter-low" placeholder="5000">
+                            <span class="unit">mentions/7d</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="twitter-high">High Risk (<):</label>
+                            <input type="number" id="twitter-high" placeholder="500">
+                            <span class="unit">mentions/7d</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Social Media Risk Thresholds</h3>
+                    <div class="threshold-inputs">
+                        <div class="input-group">
+                            <label for="engagement-ratio">Bot Risk Threshold (<):</label>
+                            <input type="number" id="engagement-ratio" placeholder="0.3" step="0.1" min="0" max="1">
+                            <span class="unit">engagement ratio</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="scam-keywords">Red Flag Threshold (>):</label>
+                            <input type="number" id="scam-keywords" placeholder="5">
+                            <span class="unit">scam keywords/7d</span>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="settings-section">
@@ -220,6 +252,19 @@
                     <h3>Data Providers</h3>
                     <div class="provider-list" id="provider-list">
                         <!-- Providers will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>OpenAI Configuration</h3>
+                    <div class="input-group">
+                        <label>System Prompt Preview:</label>
+                        <a href="/info/prompt" target="_blank" class="btn btn-secondary" style="display: inline-block; margin-top: 5px;">
+                            🔍 View Current System Prompt
+                        </a>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Opens in new tab. Shows the current system prompt with configuration values prefilled.
+                        </small>
                     </div>
                 </div>
             </section>

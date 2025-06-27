@@ -42,6 +42,53 @@ app.get('/admin', (req: Request, res: Response): void => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+// Prompt info route - serve the prompt info interface
+app.get('/info/prompt', (req: Request, res: Response): void => {
+  console.log('INFO/PROMPT route hit');
+  console.log('Accept header:', req.headers.accept);
+  console.log('User-Agent:', req.headers['user-agent']);
+  
+  // Check if it's an API request (JSON) or HTML request
+  const acceptHeader = req.headers.accept || '';
+  if (acceptHeader.includes('application/json')) {
+    console.log('Serving JSON response');
+    // API request - return JSON data
+    try {
+      // Create a temporary OpenAI processor to get the system prompt
+      const openaiProcessor = new OpenAIProcessor();
+      
+      // Get the system prompt with current configuration values
+      const systemPrompt = openaiProcessor.buildSystemPrompt();
+      
+      // Get current risk assessment configuration
+      const riskConfig = config.getRiskAssessmentConfig();
+      
+      res.json({
+        result: true,
+        data: {
+          systemPrompt: systemPrompt,
+          configuration: {
+            riskAssessment: riskConfig,
+            openai: config.getOpenAIConfig()
+          },
+          timestamp: new Date().toISOString(),
+          note: "This shows the current system prompt that will be sent to OpenAI with configuration values prefilled."
+        }
+      });
+    } catch (error) {
+      console.error('Error in JSON response:', error);
+      res.status(500).json({
+        result: false,
+        reason: error instanceof Error ? error.message : 'Failed to generate prompt info'
+      });
+    }
+  } else {
+    console.log('Serving HTML response');
+    // HTML request - serve the page
+    res.sendFile(path.join(__dirname, '../public/prompt-info.html'));
+  }
+});
+
 // Enum for address types
 export enum AddressType {
   EVM = 'evm',
@@ -269,7 +316,8 @@ app.get('/health', (req: Request, res: Response): void => {
         search: '/search/:address',
         health: '/health',
         chains: '/chains',
-        config: '/config'
+        config: '/config',
+        prompt: '/info/prompt'
       },
       providers: dataCollector.getProviders().map(p => p.getName()),
       processors: processorManager.getProcessors().map(p => p.getName()),

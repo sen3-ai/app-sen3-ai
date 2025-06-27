@@ -81,10 +81,6 @@
   ],
   "processors": [
     {
-      "name": "comprehensive",
-      "enabled": false
-    },
-    {
       "name": "openai",
       "enabled": true
     }
@@ -99,9 +95,9 @@
   },
   "riskAssessment": {
     "volume24h": {
-      "low": 1000000,
-      "medium": 100000,
-      "high": 100000
+      "low": 1100000,
+      "medium": 120000,
+      "high": 130000
     },
     "holdersCount": {
       "low": 2000,
@@ -135,6 +131,16 @@
       "low": 3,
       "medium": 10,
       "high": 10
+    },
+    "twitterMentions": {
+      "low": 5000,
+      "high": 500
+    },
+    "engagementRatio": {
+      "botRisk": 0.3
+    },
+    "scamKeywords": {
+      "redFlag": 5
     }
   },
   "logLevel": "info",

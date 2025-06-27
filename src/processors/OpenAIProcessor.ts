@@ -204,49 +204,51 @@ Consider all the rules I provided and explain your reasoning for each risk facto
     }
   }
 
-  private buildSystemPrompt(): string {
+  public buildSystemPrompt(): string {
+    const riskConfig = Config.getInstance().getRiskAssessmentConfig();
+    
     return `You are a blockchain risk assessment expert. Analyze token contracts based on the following comprehensive rules using standardized data:
 
 ## 1. DEX Volume & Holders
-- > $1M 24h volume → Very Low Risk
-- $100K–$1M → Moderate Risk  
-- < $100K → High Risk
-- > 2,000 holders → Very Low Risk
-- 300–2,000 → Moderate Risk
-- < 300 → High Risk
+- > $${(riskConfig.volume24h.low / 1000000).toFixed(1)}M 24h volume → Very Low Risk
+- $${(riskConfig.volume24h.medium / 1000).toFixed(0)}K–$${(riskConfig.volume24h.low / 1000000).toFixed(1)}M → Moderate Risk  
+- < $${(riskConfig.volume24h.high / 1000).toFixed(0)}K → High Risk
+- > ${riskConfig.holdersCount.low.toLocaleString()} holders → Very Low Risk
+- ${riskConfig.holdersCount.medium}–${riskConfig.holdersCount.low.toLocaleString()} → Moderate Risk
+- < ${riskConfig.holdersCount.high} → High Risk
 
 ## 2. Twitter Mentions & Influencers
-- > 5,000 organic mentions/7d → Low Risk
-- < 500 mentions/7d → High Risk
-- Engagement Ratio < 0.3 → Bot Risk ***
-- >5 scam keywords/7d → Red Flag
+- > ${riskConfig.twitterMentions.low.toLocaleString()} organic mentions/7d → Low Risk
+- < ${riskConfig.twitterMentions.high} mentions/7d → High Risk
+- Engagement Ratio < ${riskConfig.engagementRatio.botRisk} → Bot Risk ***
+- >${riskConfig.scamKeywords.redFlag} scam keywords/7d → Red Flag
 
 ## 3. AMLBot Score (Deployer)
-- 0–30 → Clean → Low Risk
-- 31–70 → Moderate → Medium Risk
-- 71–100 → High-Risk Entity → High/Critical
+- 0–${riskConfig.amlbotScore.low} → Clean → Low Risk
+- ${riskConfig.amlbotScore.low + 1}–${riskConfig.amlbotScore.medium} → Moderate → Medium Risk
+- ${riskConfig.amlbotScore.high + 1}–100 → High-Risk Entity → High/Critical
 
 ## 4. Token Concentration
-- > 80% held by top 3 wallets → Critical Risk
-- 50–80% → High Risk
-- 20–50% → Medium Risk
-- < 20% → Low Risk
+- > ${riskConfig.top3ClustersPercentage.critical}% held by top 3 wallets → Critical Risk
+- ${riskConfig.top3ClustersPercentage.high}–${riskConfig.top3ClustersPercentage.critical}% → High Risk
+- ${riskConfig.top3ClustersPercentage.medium}–${riskConfig.top3ClustersPercentage.high}% → Medium Risk
+- < ${riskConfig.top3ClustersPercentage.low}% → Low Risk
 - Top 5 share the same cluster → Red Flag
 
 ## 5. Token Age
-- < 7 days → High Risk ***
-- 7–30 days → Medium Risk
-- > 30 days → Normal Risk
+- < ${riskConfig.tokenAge.high} days → High Risk ***
+- ${riskConfig.tokenAge.medium}–${riskConfig.tokenAge.low} days → Medium Risk
+- > ${riskConfig.tokenAge.low} days → Normal Risk
 
 ## 6. Market Cap & FDV
-- > $100M Market Cap → Low Risk
-- $10M–$100M → Moderate Risk
-- $1M–$10M → High Risk
-- < $1M → Very High Risk
-- FDV < 3x Market Cap → Healthy
-- FDV 3x–10x Market Cap → Acceptable
-- FDV > 10x Market Cap → Red Flag
-- FDV > 10x TVL → Inefficient Capital
+- > $${(riskConfig.marketCap.low / 1000000).toFixed(0)}M Market Cap → Low Risk
+- $${(riskConfig.marketCap.medium / 1000000).toFixed(0)}M–$${(riskConfig.marketCap.low / 1000000).toFixed(0)}M → Moderate Risk
+- $${(riskConfig.marketCap.high / 1000000).toFixed(0)}M–$${(riskConfig.marketCap.medium / 1000000).toFixed(0)}M → High Risk
+- < $${(riskConfig.marketCap.critical / 1000000).toFixed(0)}M → Very High Risk
+- FDV < ${riskConfig.fullyDilutedValuation.low}x Market Cap → Healthy
+- FDV ${riskConfig.fullyDilutedValuation.low}x–${riskConfig.fullyDilutedValuation.medium}x Market Cap → Acceptable
+- FDV > ${riskConfig.fullyDilutedValuation.high}x Market Cap → Red Flag
+- FDV > ${riskConfig.fullyDilutedValuation.high}x TVL → Inefficient Capital
 
 ## Data Format
 The data will be provided in a standardized format with the following fields:

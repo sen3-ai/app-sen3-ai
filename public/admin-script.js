@@ -596,6 +596,22 @@ class AdminSettings {
             document.getElementById('fdv-high').value = risk.fullyDilutedValuation.high || '';
         }
 
+        // Twitter Mentions
+        if (risk.twitterMentions) {
+            document.getElementById('twitter-low').value = risk.twitterMentions.low || '';
+            document.getElementById('twitter-high').value = risk.twitterMentions.high || '';
+        }
+
+        // Engagement Ratio
+        if (risk.engagementRatio) {
+            document.getElementById('engagement-ratio').value = risk.engagementRatio.botRisk || '';
+        }
+
+        // Scam Keywords
+        if (risk.scamKeywords) {
+            document.getElementById('scam-keywords').value = risk.scamKeywords.redFlag || '';
+        }
+
         // System Configuration
         const server = this.config.server || {};
         document.getElementById('server-port').value = server.port || '';
@@ -729,6 +745,16 @@ class AdminSettings {
                     low: parseInt(document.getElementById('fdv-low').value) || 3,
                     medium: parseInt(document.getElementById('fdv-medium').value) || 10,
                     high: parseInt(document.getElementById('fdv-high').value) || 10
+                },
+                twitterMentions: {
+                    low: parseInt(document.getElementById('twitter-low').value) || 5000,
+                    high: parseInt(document.getElementById('twitter-high').value) || 500
+                },
+                engagementRatio: {
+                    botRisk: parseFloat(document.getElementById('engagement-ratio').value) || 0.3
+                },
+                scamKeywords: {
+                    redFlag: parseInt(document.getElementById('scam-keywords').value) || 5
                 }
             },
             server: {
