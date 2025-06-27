@@ -224,6 +224,7 @@ Consider all the rules I provided and explain your reasoning for each risk facto
 - >${riskConfig.scamKeywords.redFlag} scam keywords/7d → Red Flag
 
 ## 3. AMLBot Score (Deployer)
+- no risk data -> Low Risk
 - 0–${riskConfig.amlbotScore.low} → Clean → Low Risk
 - ${riskConfig.amlbotScore.low + 1}–${riskConfig.amlbotScore.medium} → Moderate → Medium Risk
 - ${riskConfig.amlbotScore.high + 1}–100 → High-Risk Entity → High/Critical
