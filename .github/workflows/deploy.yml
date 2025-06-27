@@ -9,10 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Disable strict host key checking
-        run: |
-           echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-           
+    
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
