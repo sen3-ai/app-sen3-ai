@@ -76,7 +76,7 @@ export class CoingeckoProvider extends BaseProvider {
 
   constructor() {
     super();
-    this.apiKey = this.config.getCredentials().coingeckoApiKey || 'CG-ABbdKjPjZ1EVvfRBkzyyzDga'; // Fallback to demo key if not set
+    this.apiKey = this.config.getCredentials().coingeckoApiKey || '';
   }
 
   getName(): string {
@@ -94,6 +94,17 @@ export class CoingeckoProvider extends BaseProvider {
 
   async fetch(address: string, chain: string = 'ethereum'): Promise<any> {
     return this.safeFetch(async () => {
+      if (!this.apiKey) {
+        console.warn('Coingecko API key not configured');
+        return {
+          rawData: null,
+          status: 'error',
+          error: 'Coingecko API key not configured',
+          provider: 'coingecko',
+          timestamp: new Date().toISOString()
+        };
+      }
+
       const targetChain = this.resolveChain(chain);
       if (!targetChain) {
         console.warn(`Unsupported chain for Coingecko: ${chain}`);
@@ -119,7 +130,7 @@ export class CoingeckoProvider extends BaseProvider {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'x-cg-demo-api-key': this.apiKey
+              'x-cg-api-key': this.apiKey
             },
             signal: controller.signal
           });
