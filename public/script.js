@@ -425,6 +425,9 @@ function createDebugBlock(debugData) {
 // Create provider debug section
 function createProviderDebugSection(providerData) {
     const providerItems = Object.entries(providerData).map(([name, data]) => {
+        // Skip commonData as it's handled separately
+        if (name === 'commonData') return '';
+        
         const status = data.status || 'unknown';
         const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'pending';
         
@@ -455,6 +458,76 @@ function createProviderDebugSection(providerData) {
         `;
     }).join('');
     
+    // Create common data section if it exists
+    let commonDataSection = '';
+    if (providerData.commonData && Object.keys(providerData.commonData).length > 0) {
+        const commonDataItems = Object.entries(providerData.commonData).map(([providerName, commonData]) => {
+            const commonDataFields = Object.entries(commonData).map(([field, value]) => {
+                if (value === undefined || value === null) return '';
+                let displayValue = value;
+                if (typeof value === 'number') {
+                    if (field.includes('price') || field.includes('marketCap') || field.includes('volume') || field.includes('liquidity') || field.includes('valuation')) {
+                        displayValue = `$${formatNumber(value)}`;
+                    } else if (field.includes('percentage') || field.includes('ratio') || field.includes('score')) {
+                        // Handle different types of scores
+                        if (field === 'amlbotScore') {
+                            // AMLBot score is 0-1, convert to percentage
+                            displayValue = `${(value * 100).toFixed(2)}%`;
+                        } else if (field === 'decentralizationScore') {
+                            // Decentralization score is 0-100, show as percentage
+                            displayValue = `${value.toFixed(1)}%`;
+                        } else if (field === 'engagementRatio') {
+                            // Engagement ratio is 0-1, convert to percentage
+                            displayValue = `${(value * 100).toFixed(2)}%`;
+                        } else if (field === 'topHoldersPercentage') {
+                            // Top holders percentage is already 0-1, convert to percentage
+                            displayValue = `${(value * 100).toFixed(2)}%`;
+                        } else {
+                            // Default percentage formatting
+                            displayValue = `${(value * 100).toFixed(2)}%`;
+                        }
+                    } else if (field.includes('count') || field.includes('txCount') || field.includes('holders')) {
+                        // Transaction counts and holder counts
+                        displayValue = formatNumber(value);
+                    } else {
+                        // Other numeric values
+                        displayValue = formatNumber(value);
+                    }
+                } else if (typeof value === 'string' && value.includes('T')) {
+                    // Format timestamp
+                    displayValue = new Date(value).toLocaleString();
+                }
+                return `<div class="common-data-field"><strong>${field}:</strong> ${displayValue}</div>`;
+            }).filter(field => field !== '').join('');
+            
+            return `
+                <div class="debug-provider-item">
+                    <div class="debug-provider-header">
+                        <span class="debug-provider-name">${providerName} (Common Data)</span>
+                        <span class="debug-provider-status success">extracted</span>
+                        <span class="debug-provider-toggle">▼</span>
+                    </div>
+                    <div class="debug-provider-content" style="display: none;">
+                        <div class="debug-provider-details">
+                            <div class="common-data-fields">
+                                ${commonDataFields}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        commonDataSection = `
+            <div class="debug-subsection">
+                <h4 class="debug-subsection-title">📊 Common Data (Standardized)</h4>
+                <div class="debug-provider-list">
+                    ${commonDataItems}
+                </div>
+            </div>
+        `;
+    }
+    
     return `
         <div class="debug-subsection">
             <h4 class="debug-subsection-title">📡 Provider Data</h4>
@@ -462,6 +535,7 @@ function createProviderDebugSection(providerData) {
                 ${providerItems}
             </div>
         </div>
+        ${commonDataSection}
     `;
 }
 

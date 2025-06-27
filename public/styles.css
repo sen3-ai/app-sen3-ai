@@ -954,6 +954,29 @@ body {
     font-weight: 600;
 }
 
+/* Common data styles */
+.common-data-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.common-data-field {
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.common-data-field strong {
+    color: #212529;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
 /* Mobile responsive styles for debug section */
 @media (max-width: 768px) {
     .debug-header {
