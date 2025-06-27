@@ -5,6 +5,7 @@ let debugMode = false;
 
 // DOM elements
 const searchInput = document.getElementById('searchInput');
+const searchButton = document.getElementById('searchButton');
 const autocompleteDropdown = document.getElementById('autocompleteDropdown');
 const resultsSection = document.getElementById('resultsSection');
 const loadingElement = document.getElementById('loading');
@@ -19,10 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     searchInput.addEventListener('input', handleSearchInput);
     searchInput.addEventListener('keydown', handleSearchKeydown);
+    searchButton.addEventListener('click', handleSearchButtonClick);
     
     // Close autocomplete when clicking outside
     document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+        if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target) && !searchButton.contains(e.target)) {
             hideAutocomplete();
         }
     });
@@ -52,6 +54,27 @@ function handleSearchInput() {
     }, 300);
 }
 
+// Handle search button click
+function handleSearchButtonClick() {
+    const query = searchInput.value.trim();
+    
+    // Clear any existing timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // Hide results when new search starts
+    hideResults();
+    
+    if (query.length < 3) {
+        showError('Please enter at least 3 characters to search');
+        return;
+    }
+    
+    // Immediately perform search when button is clicked
+    performSearch(query);
+}
+
 // Handle keyboard navigation in autocomplete
 function handleSearchKeydown(e) {
     const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
@@ -79,6 +102,9 @@ function handleSearchKeydown(e) {
                 const address = searchInput.value.trim();
                 if (address.length >= 10) {
                     searchForAddress(address);
+                } else if (address.length >= 3) {
+                    // Trigger search button functionality
+                    handleSearchButtonClick();
                 }
             }
             break;

@@ -16,13 +16,23 @@
         <div class="main-content">
             <div class="search-section">
                 <div class="search-container">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        class="search-input" 
-                        placeholder="Enter contract address (e.g., 0xdac17f958d2ee523a2206206994597c13d831ec7)"
-                        autocomplete="off"
-                    >
+                    <div class="search-input-group">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Enter contract address (e.g., 0xdac17f958d2ee523a2206206994597c13d831ec7)"
+                            autocomplete="off"
+                        >
+                        <button 
+                            id="searchButton" 
+                            class="search-button" 
+                            type="button"
+                            title="Search for contract address"
+                        >
+                            🔍
+                        </button>
+                    </div>
                     <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
                 </div>
             </div>
