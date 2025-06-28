@@ -244,8 +244,8 @@ export class DexScreenerProvider extends BaseProvider {
     const avgPriceChange24h = priceChangeCount > 0 ? priceChangeSum / priceChangeCount : undefined;
 
     return {
-      price: avgPrice,
-      priceChange24h: avgPriceChange24h,
+      //price: avgPrice,
+      //priceChange24h: avgPriceChange24h,
       volume24h: totalVolume24h > 0 ? totalVolume24h : undefined,
       fullyDilutedValuation: totalFdv > 0 ? totalFdv : undefined,
       txCount24h: totalTxCount24h > 0 ? totalTxCount24h : undefined,
