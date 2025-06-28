@@ -199,19 +199,28 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     };
 
     if (contractInfo && contractInfo.status === 'success' && contractInfo.rawData && contractInfo.rawData.length > 0) {
-      // Get the best pair (highest liquidity)
+      // Get the best pair (highest liquidity) for contract details
       const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
         const bestLiquidity = best.liquidity?.usd || 0;
         const currentLiquidity = current.liquidity?.usd || 0;
         return currentLiquidity > bestLiquidity ? current : best;
       }, contractInfo.rawData[0]);
 
+      // Sum liquidity and volume across all pairs
+      const totalLiquidity = contractInfo.rawData.reduce((sum: number, pair: any) => {
+        return sum + (pair.liquidity?.usd || 0);
+      }, 0);
+
+      const totalVolume24h = contractInfo.rawData.reduce((sum: number, pair: any) => {
+        return sum + (pair.volume?.h24 || 0);
+      }, 0);
+
       basicInfo = {
         name: bestPair.baseToken?.name || 'Unknown',
         symbol: bestPair.baseToken?.symbol || 'Unknown',
-        priceUsd: parseFloat(bestPair.priceUsd || '0'),
-        liquidityUsd: bestPair.liquidity?.usd || 0,
-        volume24h: bestPair.volume?.h24 || 0,
+        priceUsd: 0, // Will be set from Coingecko data later
+        liquidityUsd: totalLiquidity,
+        volume24h: totalVolume24h,
         dexId: bestPair.dexId || 'Unknown',
         pairAddress: bestPair.pairAddress || 'Unknown',
         found: true
@@ -227,7 +236,15 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     // Step 4: Use collected data directly (no filtering)
     const realData = collectedData;
     
-    // Step 5: Process data through all processors
+    // Step 5: Get price from Coingecko data if available
+    if (realData.coingecko && realData.coingecko.status === 'success' && realData.coingecko.commonData) {
+      const coingeckoData = realData.coingecko.commonData;
+      if (coingeckoData.price) {
+        basicInfo.priceUsd = coingeckoData.price;
+      }
+    }
+    
+    // Step 6: Process data through all processors
     const riskAssessment = await processorManager.processData(address, addressType, realData);
     
     // Build response
