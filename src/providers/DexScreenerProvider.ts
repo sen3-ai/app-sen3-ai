@@ -62,6 +62,9 @@ const CHAIN_MAPPING: { [key: string]: string } = {
   'solana': 'solana',
   'bsc': 'bsc',
   'base': 'base',
+  'polygon': 'polygon',
+  'optimism': 'optimism',
+  'arbitrum': 'arbitrum',
   'avalanche': 'avalanche'
 };
 
@@ -87,42 +90,26 @@ export class DexScreenerProvider extends BaseProvider {
         };
       }
 
-      const url = `https://api.dexscreener.com/latest/dex/tokens/${address}`;
       const retries = 3;
       let lastError: any;
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`DexScreener API error: ${response.status} ${response.statusText}`);
-          }
-
-          const data = await response.json();
+          console.log(`DexScreenerProvider attempt ${attempt}/${retries} for ${address} on ${targetChain}`);
           
-          if (data && data.pairs && Array.isArray(data.pairs)) {
-            const filteredPairs = data.pairs.filter((pair: any) => 
-              pair.chainId && pair.chainId.toLowerCase() === targetChain.toLowerCase()
-            );
-
-            if (filteredPairs.length > 0) {
-              return {
-                rawData: filteredPairs,
-                status: 'success',
-                provider: 'dexscreener',
-                timestamp: new Date().toISOString()
-              };
-            } else {
-              console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
-            }
+          // Use the correct DexScreener API endpoint format
+          const data = await this.callDexScreenerAPI(address, targetChain, 10000);
+          
+          if (data && Array.isArray(data) && data.length > 0) {
+            console.log(`DexScreenerProvider found ${data.length} pairs for ${address} on ${targetChain}`);
+            return {
+              rawData: data,
+              status: 'success',
+              provider: 'dexscreener',
+              timestamp: new Date().toISOString()
+            };
           } else {
-            console.warn(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
+            console.log(`DexScreener API returned no pairs for ${address} on ${targetChain}`);
           }
 
           // If we get here, no pairs were found, but it's not an error
@@ -165,6 +152,7 @@ export class DexScreenerProvider extends BaseProvider {
   private async callDexScreenerAPI(address: string, chain: string, timeout: number): Promise<DexScreenerResponse> {
     try {
       const url = `${this.baseUrl}/${chain}/${address}`;
+      console.log(`DexScreener API URL: ${url}`);
       
       const response = await fetch(url, {
         method: 'GET',
