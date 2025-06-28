@@ -202,6 +202,8 @@ export class CoingeckoProvider extends BaseProvider {
     const communityData = rawData.community_data;
 
     return {
+      name: rawData.name,
+      symbol: rawData.symbol,
       price: marketData.current_price?.usd,
       priceChange24h: marketData.price_change_percentage_24h,
       volume24h: marketData.total_volume?.usd,

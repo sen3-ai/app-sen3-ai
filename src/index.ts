@@ -183,68 +183,120 @@ app.get('/risk/:chain/:address', async (req: Request, res: Response): Promise<vo
     console.log(`Processing risk assessment for ${address} on ${chain}...`);
     console.log(`Request params - address: "${address}", chain: "${chain}"`);
 
-    // Step 1: Fetch basic contract information from DexScreener
-    const dexscreenerProvider = new DexScreenerProvider();
-    const contractInfo = await dexscreenerProvider.fetch(address, chain);
+    // Step 1: Collect data from all providers first
+    const collectedData = await dataCollector.collectData(address, chain);
     
+    // Step 2: Extract basic contract information from Coingecko data
     let basicInfo = {
       name: 'Unknown',
       symbol: 'Unknown',
       priceUsd: 0,
       liquidityUsd: 0,
       volume24h: 0,
+      marketCap: 0,
       dexId: 'Unknown',
       pairAddress: 'Unknown',
       found: false
     };
 
-    if (contractInfo && contractInfo.status === 'success' && contractInfo.rawData && contractInfo.rawData.length > 0) {
-      // Get the best pair (highest liquidity) for contract details
-      const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
-        const bestLiquidity = best.liquidity?.usd || 0;
-        const currentLiquidity = current.liquidity?.usd || 0;
-        return currentLiquidity > bestLiquidity ? current : best;
-      }, contractInfo.rawData[0]);
-
-      // Sum liquidity and volume across all pairs
-      const totalLiquidity = contractInfo.rawData.reduce((sum: number, pair: any) => {
-        return sum + (pair.liquidity?.usd || 0);
-      }, 0);
-
-      const totalVolume24h = contractInfo.rawData.reduce((sum: number, pair: any) => {
-        return sum + (pair.volume?.h24 || 0);
-      }, 0);
-
+    // Get basic info from Coingecko first
+    if (collectedData.coingecko && collectedData.coingecko.status === 'success' && collectedData.coingecko.commonData) {
+      const coingeckoData = collectedData.coingecko.commonData;
+      
       basicInfo = {
-        name: bestPair.baseToken?.name || 'Unknown',
-        symbol: bestPair.baseToken?.symbol || 'Unknown',
-        priceUsd: 0, // Will be set from Coingecko data later
-        liquidityUsd: totalLiquidity,
-        volume24h: totalVolume24h,
-        dexId: bestPair.dexId || 'Unknown',
-        pairAddress: bestPair.pairAddress || 'Unknown',
+        name: coingeckoData.name || 'Unknown',
+        symbol: coingeckoData.symbol || 'Unknown',
+        priceUsd: coingeckoData.price || 0,
+        liquidityUsd: 0, // Will be set from DexScreener
+        volume24h: coingeckoData.volume24h || 0,
+        marketCap: coingeckoData.marketCap || 0,
+        dexId: 'Coingecko',
+        pairAddress: 'N/A',
         found: true
       };
     }
 
-    // Step 2: Determine address type
+    // Step 3: Get liquidity data from DexScreener
+    if (collectedData.dexscreener && collectedData.dexscreener.status === 'success' && collectedData.dexscreener.rawData && collectedData.dexscreener.rawData.length > 0) {
+      const dexscreenerData = collectedData.dexscreener.rawData;
+      
+      // Sum liquidity across all pairs
+      const totalLiquidity = dexscreenerData.reduce((sum: number, pair: any) => {
+        return sum + (pair.liquidity?.usd || 0);
+      }, 0);
+
+      // Get the best pair (highest liquidity) for dex info
+      const bestPair = dexscreenerData.reduce((best: any, current: any) => {
+        const bestLiquidity = best.liquidity?.usd || 0;
+        const currentLiquidity = current.liquidity?.usd || 0;
+        return currentLiquidity > bestLiquidity ? current : best;
+      }, dexscreenerData[0]);
+
+      // Update basic info with DexScreener data
+      basicInfo.liquidityUsd = totalLiquidity;
+      basicInfo.dexId = bestPair.dexId || basicInfo.dexId;
+      basicInfo.pairAddress = bestPair.pairAddress || basicInfo.pairAddress;
+      
+      // If we don't have name/symbol from Coingecko, get it from DexScreener
+      if (!basicInfo.found || basicInfo.name === 'Unknown') {
+        basicInfo.name = bestPair.baseToken?.name || basicInfo.name;
+        basicInfo.symbol = bestPair.baseToken?.symbol || basicInfo.symbol;
+        basicInfo.found = true;
+      }
+    }
+
+    // Step 4: If neither Coingecko nor DexScreener have data, try DexScreener as fallback
+    if (!basicInfo.found) {
+      console.log('No Coingecko data found, trying DexScreener as fallback...');
+      const dexscreenerProvider = new DexScreenerProvider();
+      const contractInfo = await dexscreenerProvider.fetch(address, chain);
+      
+      if (contractInfo && contractInfo.status === 'success' && contractInfo.rawData && contractInfo.rawData.length > 0) {
+        // Get the best pair (highest liquidity) for contract details
+        const bestPair = contractInfo.rawData.reduce((best: any, current: any) => {
+          const bestLiquidity = best.liquidity?.usd || 0;
+          const currentLiquidity = current.liquidity?.usd || 0;
+          return currentLiquidity > bestLiquidity ? current : best;
+        }, contractInfo.rawData[0]);
+
+        // Sum liquidity and volume across all pairs
+        const totalLiquidity = contractInfo.rawData.reduce((sum: number, pair: any) => {
+          return sum + (pair.liquidity?.usd || 0);
+        }, 0);
+
+        const totalVolume24h = contractInfo.rawData.reduce((sum: number, pair: any) => {
+          return sum + (pair.volume?.h24 || 0);
+        }, 0);
+
+        basicInfo = {
+          name: bestPair.baseToken?.name || 'Unknown',
+          symbol: bestPair.baseToken?.symbol || 'Unknown',
+          priceUsd: 0, // Will be set from Coingecko data later if available
+          liquidityUsd: totalLiquidity,
+          volume24h: totalVolume24h,
+          marketCap: 0,
+          dexId: bestPair.dexId || 'Unknown',
+          pairAddress: bestPair.pairAddress || 'Unknown',
+          found: true
+        };
+      }
+    }
+
+    // Step 5: Determine address type
     const addressType = getAddressType(address);
     
-    // Step 3: Collect data from all providers
-    const collectedData = await dataCollector.collectData(address, chain);
-    
-    // Step 4: Use collected data directly (no filtering)
+    // Step 6: Use collected data directly (no filtering)
     const realData = collectedData;
     
-    // Step 5: Get price from Coingecko data if available
+    // Step 7: Update price from Coingecko common data if available and not already set
     if (realData.coingecko && realData.coingecko.status === 'success' && realData.coingecko.commonData) {
       const coingeckoData = realData.coingecko.commonData;
-      if (coingeckoData.price) {
+      if (coingeckoData.price && basicInfo.priceUsd === 0) {
         basicInfo.priceUsd = coingeckoData.price;
       }
     }
     
-    // Step 6: Process data through all processors
+    // Step 8: Process data through all processors
     const riskAssessment = await processorManager.processData(address, addressType, realData);
     
     // Build response
